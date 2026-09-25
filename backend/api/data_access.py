@@ -24,8 +24,7 @@ router = APIRouter(prefix="/api/v1", tags=["data-access"])
 async def list_content(
     skip: int = 0,
     limit: int = 50,
-    status: Optional[str] = None,
-    subject: Optional[str] = None,
+    status_filter: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """List all content from database with proper tenant filtering."""
@@ -34,11 +33,8 @@ async def list_content(
 
         query = db.query(Content).filter(Content.tenant_id == tenant_id)
 
-        if status:
-            query = query.filter(Content.status == status)
-
-        if subject:
-            query = query.filter(Content.subject == subject)
+        if status_filter:
+            query = query.filter(Content.status == status_filter)
 
         total = query.count()
         content_items = query.order_by(Content.created_at.desc()).offset(skip).limit(limit).all()
@@ -50,11 +46,10 @@ async def list_content(
                 {
                     "id": c.id,
                     "title": c.title,
-                    "description": c.description,
                     "type": c.content_type,
-                    "subject": c.subject,
-                    "grade": c.grade_level,
+                    "source": c.source,
                     "status": c.status,
+                    "version": c.version,
                     "created_at": c.created_at.isoformat() if c.created_at else None,
                 }
                 for c in content_items
@@ -95,11 +90,10 @@ async def get_content_detail(
             "content": {
                 "id": content.id,
                 "title": content.title,
-                "description": content.description,
                 "type": content.content_type,
-                "subject": content.subject,
-                "grade": content.grade_level,
+                "source": content.source,
                 "status": content.status,
+                "version": content.version,
                 "created_at": content.created_at.isoformat() if content.created_at else None,
             }
         }
