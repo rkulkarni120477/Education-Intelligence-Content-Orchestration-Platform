@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import { QueryClientProvider } from 'react-query'
-import { queryClient } from '@/lib/api/query-client'
+import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,9 +27,9 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className="antialiased bg-white">
-        <QueryClientProvider client={queryClient}>
+        <Providers>
           <main>{children}</main>
-        </QueryClientProvider>
+        </Providers>
       </body>
     </html>
   )
