@@ -1,20 +1,13 @@
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, Session
-from pathlib import Path
-from config import Settings, get_settings
-import os
+from config import get_settings
 import logging
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Ensure data directory exists
-data_dir = Path(__file__).parent.parent.parent / "data"
-data_dir.mkdir(exist_ok=True)
-
-# SQLite database
-db_path = data_dir / "academian_platform.db"
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
+# Use database URL from centralized settings
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -69,7 +62,7 @@ def init_db():
 
     # Create all tables from models first
     Base.metadata.create_all(bind=engine)
-    logger.info(f"Database tables created at {db_path}")
+    logger.info(f"Database initialized: {SQLALCHEMY_DATABASE_URL}")
 
     # Run migrations
     db = SessionLocal()
