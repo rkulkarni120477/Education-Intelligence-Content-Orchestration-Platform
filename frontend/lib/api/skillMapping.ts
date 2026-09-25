@@ -5,8 +5,7 @@
  * recommendations, gap analysis, and coverage reports.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_BASE_URL } from './config';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import type {
   SkillAlignmentListResponse,
   SkillAlignmentItem,
@@ -19,6 +18,8 @@ import type {
   ApprovalRequest,
   ApprovalResponse,
 } from '../types/phase5';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // ===== SKILL ALIGNMENT QUERIES =====
 

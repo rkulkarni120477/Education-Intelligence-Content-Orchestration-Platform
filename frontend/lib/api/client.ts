@@ -105,8 +105,8 @@ class ApiClient {
     }
   }
 
-  get<T>(url: string) {
-    return this.instance.get<T>(url)
+  get<T>(url: string, config?: any) {
+    return this.instance.get<T>(url, config)
   }
 
   post<T>(url: string, data?: any) {

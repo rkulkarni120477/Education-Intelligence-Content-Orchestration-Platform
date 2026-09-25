@@ -98,7 +98,7 @@ export function SkillAlignmentReview({ workflowId }: SkillAlignmentReviewProps) 
           <div className="text-2xl font-bold">
             {alignments.length > 0
               ? (
-                  (alignments.reduce((sum, a) => sum + a.confidence, 0) /
+                  (alignments.reduce((sum: number, a: any) => sum + a.confidence, 0) /
                     alignments.length) *
                   100
                 ).toFixed(0) + '%'
@@ -108,21 +108,21 @@ export function SkillAlignmentReview({ workflowId }: SkillAlignmentReviewProps) 
         <div className="bg-purple-50 p-4 rounded-lg">
           <div className="text-sm text-gray-600">Skills Mapped</div>
           <div className="text-2xl font-bold">
-            {new Set(alignments.map((a) => a.skillId)).size}
+            {new Set(alignments.map((a: any) => a.skillId)).size}
           </div>
         </div>
       </div>
 
       {/* Alignment List */}
       <div className="space-y-3">
-        {alignments.map((alignment) => (
+        {alignments.map((alignment: any) => (
           <AlignmentCard
             key={alignment.id}
             alignment={alignment}
             isSelected={selectedAlignments.has(alignment.id)}
             onSelect={() => handleSelectAlignment(alignment.id)}
             onApprove={() => handleApproveOne(alignment.id)}
-            isLoading={approveMutation.isPending}
+            isLoading={approveMutation.isLoading}
           />
         ))}
       </div>
@@ -139,10 +139,10 @@ export function SkillAlignmentReview({ workflowId }: SkillAlignmentReviewProps) 
           />
           <button
             onClick={handleApproveSelected}
-            disabled={batchApproveMutation.isPending}
+            disabled={batchApproveMutation.isLoading}
             className="w-full bg-green-600 text-white py-2 rounded font-medium hover:bg-green-700 disabled:bg-gray-400"
           >
-            {batchApproveMutation.isPending
+            {batchApproveMutation.isLoading
               ? 'Approving...'
               : `Approve Selected (${selectedAlignments.size})`}
           </button>

@@ -36,7 +36,7 @@ export const exportAlignmentData = async (options: ExportFormat) => {
 
     if (options.format === 'pdf') {
       // Handle PDF download
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]))
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', `alignments-${new Date().toISOString().split('T')[0]}.pdf`)
@@ -45,7 +45,7 @@ export const exportAlignmentData = async (options: ExportFormat) => {
       link.parentNode?.removeChild(link)
     } else if (options.format === 'csv') {
       // Handle CSV download
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]))
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', `alignments-${new Date().toISOString().split('T')[0]}.csv`)
@@ -86,7 +86,7 @@ export const generateCoverageReport = async (format: 'pdf' | 'csv' = 'pdf') => {
     })
 
     if (format === 'pdf') {
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]))
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', `coverage-report-${new Date().toISOString().split('T')[0]}.pdf`)

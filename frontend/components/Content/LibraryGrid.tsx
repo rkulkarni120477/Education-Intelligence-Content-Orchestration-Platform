@@ -52,12 +52,15 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {assets.map((asset) => (
-          <Card
+          <button
             key={asset.id}
-            variant="outlined"
-            className="cursor-pointer hover:shadow-md transition"
             onClick={() => onAssetClick(asset)}
+            className="text-left"
           >
+            <Card
+              variant="outlined"
+              className="cursor-pointer hover:shadow-md transition"
+            >
             <Card.Header>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -120,7 +123,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
               )}
 
               {/* Progress for processing items */}
-              {(asset.status === 'processing' || asset.status === 'extracting') && asset.upload_progress !== undefined && (
+              {(asset.status === 'uploaded' || asset.status === 'extracted') && asset.upload_progress !== undefined && (
                 <div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div
@@ -171,7 +174,8 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                 </div>
               </Card.Footer>
             )}
-          </Card>
+            </Card>
+          </button>
         ))}
       </div>
 

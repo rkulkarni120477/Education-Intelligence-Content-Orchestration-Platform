@@ -67,7 +67,7 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
 
   const isSelected = (id: string) => selectedContent.some(item => item.id === id)
 
-  const handleToggleItem = (item: typeof mockContent[0]) => {
+  const handleToggleItem = (item: SelectedContent) => {
     if (isSelected(item.id)) {
       onRemoveContent(item.id)
     } else {

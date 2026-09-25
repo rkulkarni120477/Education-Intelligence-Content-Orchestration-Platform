@@ -131,5 +131,3 @@ export class AdvancedErrorBoundary extends React.Component<Props, State> {
     return this.props.children
   }
 }
-
-AdvancedErrorBoundary.displayName = 'AdvancedErrorBoundary'

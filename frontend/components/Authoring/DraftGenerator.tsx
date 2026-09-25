@@ -6,7 +6,7 @@ import { Button } from '@/components/Common/Button'
 import { Badge } from '@/components/Common/Badge'
 import { Skeleton } from '@/components/Common/Skeleton'
 
-interface DraftSection {
+export interface DraftSection {
   id: string
   title: string
   type: 'introduction' | 'objectives' | 'activities' | 'assessments' | 'resources' | 'closure'

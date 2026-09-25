@@ -27,7 +27,7 @@ export function RecommendationsDashboard({ workflowId }: RecommendationsDashboar
   const recommendations = data?.recommendations || [];
 
   const filtered = useMemo(() => {
-    return recommendations.filter((rec) => {
+    return recommendations.filter((rec: RecommendationItem) => {
       const matchesPriority = filterPriority === 'all' || rec.priority === filterPriority;
       const matchesSearch =
         rec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -43,7 +43,7 @@ export function RecommendationsDashboard({ workflowId }: RecommendationsDashboar
       medium: [],
       low: [],
     };
-    filtered.forEach((rec) => {
+    filtered.forEach((rec: RecommendationItem) => {
       groups[rec.priority]?.push(rec);
     });
     return groups;
@@ -123,7 +123,7 @@ export function RecommendationsDashboard({ workflowId }: RecommendationsDashboar
             onToggleExpand={(id) => setExpandedId(expandedId === id ? null : id)}
             onApprove={handleApprove}
             onMarkImplemented={handleMarkImplemented}
-            isLoading={approveMutation.isPending || updateMutation.isPending}
+            isLoading={approveMutation.isLoading || updateMutation.isLoading}
           />
         ))}
       </div>

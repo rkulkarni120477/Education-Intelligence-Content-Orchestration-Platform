@@ -122,7 +122,7 @@ export default function ContentLibraryPage() {
         <Card variant="outlined">
           <Card.Body className="text-center">
             <p className="text-3xl font-bold text-amber-600">
-              {displayAssets.filter(a => a.status === 'processing' || a.status === 'extracting').length}
+              {displayAssets.filter(a => a.status === 'uploaded' || a.status === 'extracted').length}
             </p>
             <p className="text-sm text-slate-600 mt-2">Processing</p>
           </Card.Body>

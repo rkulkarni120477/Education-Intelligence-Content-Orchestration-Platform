@@ -55,8 +55,7 @@ export async function getAgentDetails(agentId: string): Promise<any> {
 
 export async function getAIStatistics(period: string = '30d'): Promise<AIStatsResponse> {
   const response = await apiClient.get<AIStatsResponse>(
-    `/api/v1/agents/stats/ai-usage`,
-    { params: { period } }
+    `/api/v1/agents/stats/ai-usage?period=${encodeURIComponent(period)}`
   )
   return response.data
 }

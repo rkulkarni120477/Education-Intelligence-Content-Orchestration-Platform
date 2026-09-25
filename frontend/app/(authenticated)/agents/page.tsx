@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from 'react-query'
 import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
 import { getAgents, getAIStatistics } from '@/lib/api/agents'
 import { Card } from '@/components/Common/Card'

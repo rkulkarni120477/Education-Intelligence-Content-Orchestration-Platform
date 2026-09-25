@@ -243,7 +243,7 @@ export default function ReviewInboxPage() {
                           ? 'warning'
                           : selectedItem.data.status === 'approved'
                             ? 'success'
-                            : 'danger'
+                            : 'error'
                       }
                     >
                       {selectedItem.data.status}
@@ -332,9 +332,9 @@ export default function ReviewInboxPage() {
                   onReject={handleReject}
                   onRequestChanges={handleRequestChanges}
                   isLoading={
-                    approveMutation.isPending ||
-                    rejectMutation.isPending ||
-                    revisionMutation.isPending
+                    approveMutation.isLoading ||
+                    rejectMutation.isLoading ||
+                    revisionMutation.isLoading
                   }
                 />
               )}

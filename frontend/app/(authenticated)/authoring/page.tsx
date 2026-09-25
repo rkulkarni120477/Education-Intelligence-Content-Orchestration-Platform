@@ -18,7 +18,7 @@ interface SelectedContent {
 }
 
 interface AuthoringState {
-  artifactType: 'lesson' | 'activity' | 'assessment' | ''
+  artifactType: 'lesson' | 'activity' | 'assessment'
   metadata: {
     title: string
     description: string
@@ -40,7 +40,7 @@ export default function AuthoringStudioPage() {
 
   const [currentStep, setCurrentStep] = useState<Step>('metadata')
   const [state, setState] = useState<AuthoringState>({
-    artifactType: '',
+    artifactType: 'lesson',
     metadata: {
       title: '',
       description: '',

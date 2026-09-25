@@ -22,14 +22,14 @@ const typeEmoji = {
 const statusConfig = {
   pending: { label: 'Pending', color: 'warning' },
   approved: { label: 'Approved', color: 'success' },
-  rejected: { label: 'Rejected', color: 'danger' },
+  rejected: { label: 'Rejected', color: 'error' },
   revision: { label: 'Revision', color: 'warning' },
 } as const
 
 const priorityConfig = {
   low: { color: 'info', bg: 'bg-blue-100' },
   medium: { color: 'warning', bg: 'bg-amber-100' },
-  high: { color: 'danger', bg: 'bg-red-100' },
+  high: { color: 'error', bg: 'bg-red-100' },
 } as const
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
@@ -43,13 +43,16 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   )
 
   return (
-    <Card
-      variant="outlined"
-      className={`cursor-pointer transition hover:bg-[#FFFFFF] ${
-        isSelected ? 'ring-2 ring-[#1E40AF] bg-[#FFFFFF]' : ''
-      }`}
+    <button
       onClick={() => onSelect(item)}
+      className="text-left w-full"
     >
+      <Card
+        variant="outlined"
+        className={`cursor-pointer transition hover:bg-[#FFFFFF] ${
+          isSelected ? 'ring-2 ring-[#1E40AF] bg-[#FFFFFF]' : ''
+        }`}
+      >
       <Card.Body>
         <div className="flex items-start justify-between gap-4">
           {/* Left: Item Info */}
@@ -113,7 +116,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           </div>
         </div>
       </Card.Body>
-    </Card>
+      </Card>
+    </button>
   )
 }
 
