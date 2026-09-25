@@ -10,15 +10,16 @@ import uuid
 # Add parent directory to path
 sys.path.insert(0, '/'.join(__file__.split('/')[:-2]))
 
-from database.db import SessionLocal, Base, engine
+from database.db import SessionLocal, engine
 from database.models import (
-    Tenant, User, Content, Curriculum, CurriculumUnit,
+    Base, Tenant, User, Content, Curriculum, CurriculumUnit,
     LearningObjective, Standard, StandardFramework, Alignment
 )
-from passlib.context import CryptContext
+import hashlib
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def hash_password(password: str) -> str:
+    """Simple password hashing for seed data."""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def seed_database():
@@ -62,7 +63,7 @@ def seed_database():
             email="admin@testschool.edu",
             username="admin",
             full_name="Admin User",
-            hashed_password=pwd_context.hash("admin123"),
+            hashed_password=hash_password("admin123"),
             role="admin",
             is_active=True,
             is_admin=True,
@@ -129,8 +130,8 @@ def seed_database():
             id=str(uuid.uuid4()),
             tenant_id=tenant_id,
             name="Common Core State Standards - Mathematics",
-            code="CCSS-Math",
-            source="Common Core",
+            authority="Common Core",
+            jurisdiction="National",
             version="2010",
             description="K-12 Mathematics standards"
         )
@@ -141,8 +142,8 @@ def seed_database():
             id=str(uuid.uuid4()),
             tenant_id=tenant_id,
             name="Next Generation Science Standards",
-            code="NGSS",
-            source="NGSS Lead States",
+            authority="NGSS Lead States",
+            jurisdiction="National",
             version="2013",
             description="K-12 Science standards"
         )
@@ -156,9 +157,10 @@ def seed_database():
                 tenant_id=tenant_id,
                 framework_id=math_framework.id,
                 code="4.NF.A.1",
-                title="Understand fractions as division",
-                description="Explain a fraction a/b as the quantity formed by a parts of size 1/b",
-                level="4",
+                description="Understand fractions as division - Explain a fraction a/b as the quantity formed by a parts of size 1/b",
+                grade="4",
+                subject="Mathematics",
+                domain="Number & Operations - Fractions",
                 created_at=datetime.utcnow()
             ),
             Standard(
@@ -166,9 +168,10 @@ def seed_database():
                 tenant_id=tenant_id,
                 framework_id=science_framework.id,
                 code="5-ESS2-1",
-                title="Water Cycle",
-                description="Develop a model to describe that matter is made of particles",
-                level="5",
+                description="Water Cycle - Develop a model to describe that matter is made of particles",
+                grade="5",
+                subject="Science",
+                domain="Earth and Space Sciences",
                 created_at=datetime.utcnow()
             ),
             Standard(
@@ -176,9 +179,10 @@ def seed_database():
                 tenant_id=tenant_id,
                 framework_id=science_framework.id,
                 code="6-LS1-1",
-                title="Photosynthesis and Plant Life",
-                description="Conduct and describe investigations that provide evidence for how plants get the materials they need to grow",
-                level="6",
+                description="Photosynthesis and Plant Life - Conduct and describe investigations that provide evidence for how plants get the materials they need to grow",
+                grade="6",
+                subject="Science",
+                domain="Life Sciences",
                 created_at=datetime.utcnow()
             ),
         ]

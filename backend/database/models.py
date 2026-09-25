@@ -205,20 +205,6 @@ class Skill(Base):
     __table_args__ = (UniqueConstraint('tenant_id', 'name', name='uq_tenant_skill_name'),)
 
 
-class AccessibilityAudit(Base):
-    __tablename__ = "accessibility_audits"
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
-    content_id = Column(String(36), ForeignKey("content.id"), nullable=False)
-    audit_date = Column(DateTime, default=datetime.utcnow)
-    wcag_level = Column(String(20))  # A, AA, AAA
-    issues = Column(JSON)  # List of accessibility issues
-    recommendations = Column(JSON)
-    status = Column(String(50), default="pending")  # pending, reviewed, remediated
-    remediation_notes = Column(Text)
-
-
 class KnowledgeContext(Base):
     __tablename__ = "knowledge_context"
 
