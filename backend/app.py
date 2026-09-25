@@ -49,7 +49,7 @@ app = FastAPI(
     description="Multi-Agent AI Platform for Educational Content Creation"
 )
 
-# CORS middleware
+# CORS middleware (must be added FIRST before any other middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

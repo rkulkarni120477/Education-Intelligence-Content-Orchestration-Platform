@@ -62,8 +62,8 @@ export default function ContentLibraryPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-[#6B4423]">Content Library</h1>
-        <p className="text-[#8B5A3C] mt-2">
+        <h1 className="text-4xl font-bold text-[#0F172A]">Content Library</h1>
+        <p className="text-[#1E40AF] mt-2">
           Manage your educational content, track processing status, and approve assets
         </p>
       </div>
@@ -72,7 +72,7 @@ export default function ContentLibraryPage() {
       <div className="flex gap-4">
         <button
           onClick={() => setShowUpload(!showUpload)}
-          className="px-4 py-2 bg-[#8B5A3C] text-white rounded-lg font-medium hover:bg-[#6B4423] transition"
+          className="px-4 py-2 bg-[#1E40AF] text-white rounded-lg font-medium hover:bg-[#0F172A] transition"
         >
           {showUpload ? '✕ Hide Upload' : '+ Upload Content'}
         </button>
@@ -112,7 +112,7 @@ export default function ContentLibraryPage() {
       <div className="grid grid-cols-4 gap-4">
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-3xl font-bold text-[#8B5A3C]">
+            <p className="text-3xl font-bold text-[#1E40AF]">
               {displayAssets.filter(a => a.status === 'published').length}
             </p>
             <p className="text-sm text-slate-600 mt-2">Published</p>

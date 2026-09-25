@@ -35,6 +35,7 @@ export interface AuthStore {
   clearError: () => void
   isAuthenticated: () => boolean
   hasRole: (role: UserRole | UserRole[]) => boolean
+  initializeFromStorage: () => void
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -48,6 +49,30 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   setToken: (token) => {
     apiClient.setToken(token)
     set({ token })
+  },
+
+  initializeFromStorage: () => {
+    try {
+      if (typeof window !== 'undefined') {
+        const authData = localStorage.getItem('auth_token')
+        if (authData) {
+          const data = JSON.parse(authData)
+          if (data.email && data.authenticated) {
+            const user = {
+              id: data.email,
+              email: data.email,
+              name: data.email.split('@')[0],
+              role: 'curriculum_designer' as const,
+              tenant_id: 'default',
+              created_at: new Date().toISOString(),
+            }
+            set({ user, token: 'demo_token' })
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to initialize auth from storage:', err)
+    }
   },
 
   login: async (email, password) => {
@@ -72,6 +97,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   logout: () => {
     apiClient.clearToken()
     set({ user: null, token: null, error: null })
+    localStorage.removeItem('auth_token')
   },
 
   clearError: () => set({ error: null }),

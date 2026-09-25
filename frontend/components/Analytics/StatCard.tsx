@@ -14,7 +14,7 @@ interface StatCardProps {
 }
 
 const colorClasses = {
-  primary: 'text-[#8B5A3C]',
+  primary: 'text-[#1E40AF]',
   success: 'text-green-600',
   danger: 'text-red-600',
   warning: 'text-amber-600',
@@ -22,7 +22,7 @@ const colorClasses = {
 }
 
 const bgClasses = {
-  primary: 'bg-[#FFF8F0]',
+  primary: 'bg-[#FFFFFF]',
   success: 'bg-green-50',
   danger: 'bg-red-50',
   warning: 'bg-amber-50',

@@ -67,10 +67,13 @@ export const useContentAssets = (
       if (filters?.grade) params.append('grade', filters.grade)
       if (filters?.tags?.length) params.append('tags', filters.tags.join(','))
 
-      const response = await apiClient.get<{ items: ContentAsset[]; total: number; pages: number }>(
-        `/api/v1/content?${params.toString()}`
-      )
-      return response.data
+      const response = await apiClient.get<any>(`/api/v1/content?${params.toString()}`)
+      const data = response.data
+      return {
+        items: data.items || data.content || [],
+        total: data.total ?? 0,
+        pages: data.pages ?? Math.ceil((data.total ?? 0) / limit),
+      }
     },
     {
       staleTime: 2 * 60 * 1000, // 2 minutes (content can change)
@@ -133,8 +136,9 @@ export const useProcessingJobs = (): UseQueryResult<ProcessingJob[], Error> => {
   return useQuery(
     ['processing-jobs'],
     async () => {
-      const response = await apiClient.get<ProcessingJob[]>('/api/v1/content/jobs?status=processing')
-      return response.data
+      const response = await apiClient.get<any>('/api/v1/content/jobs?status=processing')
+      const data = response.data
+      return Array.isArray(data) ? data : data.jobs || []
     },
     {
       refetchInterval: 3000, // Poll every 3 seconds

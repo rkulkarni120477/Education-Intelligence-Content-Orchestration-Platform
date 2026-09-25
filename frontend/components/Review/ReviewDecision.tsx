@@ -87,7 +87,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
   return (
     <Card variant="outlined">
       <Card.Header>
-        <h3 className="text-lg font-bold text-[#6B4423]">Review Decision</h3>
+        <h3 className="text-lg font-bold text-[#0F172A]">Review Decision</h3>
         <p className="text-sm text-slate-600 mt-1">Make your decision on this submission</p>
       </Card.Header>
 
@@ -144,7 +144,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
               placeholder="Optional approval notes..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white h-24 resize-none"
+              className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white h-24 resize-none"
             />
 
             <div className="flex gap-2">
@@ -172,13 +172,13 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
           /* Reject Form */
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Rejection Reason *
               </label>
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="">Select a reason...</option>
                 <option value="quality">Quality issues</option>
@@ -193,7 +193,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
               placeholder="Detailed feedback on why this is being rejected..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white h-24 resize-none"
+              className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white h-24 resize-none"
             />
 
             <div className="flex gap-2">
@@ -222,7 +222,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
           /* Request Changes Form */
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Required Changes
               </label>
               <div className="space-y-2">
@@ -237,7 +237,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
                         newChanges[idx] = e.target.value
                         setChanges(newChanges)
                       }}
-                      className="flex-1 px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                      className="flex-1 px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
                     />
                     {changes.length > 1 && (
                       <button
@@ -253,7 +253,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
 
               <button
                 onClick={() => setChanges([...changes, ''])}
-                className="mt-2 text-sm text-[#8B5A3C] hover:underline font-medium"
+                className="mt-2 text-sm text-[#1E40AF] hover:underline font-medium"
               >
                 + Add another change
               </button>
@@ -263,7 +263,7 @@ export const ReviewDecision: React.FC<ReviewDecisionProps> = ({
               placeholder="Additional context or guidance for making changes..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white h-20 resize-none"
+              className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white h-20 resize-none"
             />
 
             <div className="flex gap-2">

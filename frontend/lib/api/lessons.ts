@@ -52,8 +52,10 @@ export const useLessons = (curriculumId?: string): UseQueryResult<Lesson[], Erro
       const params = new URLSearchParams()
       if (curriculumId) params.append('curriculum_id', curriculumId)
 
-      const response = await apiClient.get<Lesson[]>(`/api/v1/lessons?${params.toString()}`)
-      return response.data
+      const response = await apiClient.get<{ lessons: Lesson[] }>(
+        `/api/v1/lessons?${params.toString()}`
+      )
+      return Array.isArray(response.data) ? response.data : response.data.lessons || []
     },
     {
       staleTime: 5 * 60 * 1000,

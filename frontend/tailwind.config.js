@@ -7,28 +7,31 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary brand colors (brown/tan)
+        // Primary brand colors (blue)
         brand: {
-          50: '#f8f7f5',
-          100: '#f1ede7',
-          200: '#e2dcd0',
-          300: '#d2cab8',
-          400: '#a0826d',
-          500: '#8b5a3c', // Secondary brown
-          600: '#6b4423', // Dark brown
-          700: '#5a3a1f', // Darker brown
-          800: '#4a2c18',
-          900: '#3a2010',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6', // Primary blue
+          600: '#2563eb', // Dark blue
+          700: '#1d4ed8', // Darker blue
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
-        cream: '#FFF8F0',
-        tan: {
-          50: '#fffbf7',
-          100: '#fff8f0',
-          200: '#f5e6d3',
-          300: '#e2dcd0',
-          400: '#d2b48c',
-          500: '#bfa08f',
-          600: '#a0826d',
+        white: '#FFFFFF',
+        gray: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
         },
         slate: {
           50: '#f8fafc',

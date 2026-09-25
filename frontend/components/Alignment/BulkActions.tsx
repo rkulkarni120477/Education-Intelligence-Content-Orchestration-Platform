@@ -70,12 +70,12 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
   }
 
   return (
-    <Card variant="outlined" className="border-[#8B5A3C] bg-[#FFF8F0]">
+    <Card variant="outlined" className="border-[#1E40AF] bg-[#FFFFFF]">
       <Card.Header>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">✓</span>
-            <h3 className="font-bold text-[#6B4423]">Bulk Actions</h3>
+            <h3 className="font-bold text-[#0F172A]">Bulk Actions</h3>
             <Badge variant="info">{selectedCount} selected</Badge>
           </div>
           <button
@@ -125,7 +125,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
               placeholder="Optional notes for all approved items..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white text-sm h-16 resize-none"
+              className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white text-sm h-16 resize-none"
             />
             <div className="flex gap-2">
               <Button
@@ -153,7 +153,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white text-sm"
+              className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white text-sm"
             >
               <option value="">Select reason...</option>
               <option value="quality">Quality issues</option>
@@ -166,7 +166,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
               placeholder="Feedback for rejection..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white text-sm h-16 resize-none"
+              className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white text-sm h-16 resize-none"
             />
 
             <div className="flex gap-2">

@@ -43,7 +43,7 @@ export const StandardDetail: React.FC<StandardDetailProps> = ({
   return (
     <Card variant="outlined" className="h-full overflow-auto">
       <Card.Header>
-        <h3 className="text-lg font-bold text-[#6B4423]">{standard.code}</h3>
+        <h3 className="text-lg font-bold text-[#0F172A]">{standard.code}</h3>
         {framework && (
           <p className="text-sm text-slate-500 mt-1">
             {framework.name} {framework.version && `v${framework.version}`}
@@ -54,7 +54,7 @@ export const StandardDetail: React.FC<StandardDetailProps> = ({
       <Card.Body className="space-y-6">
         {/* Main Description */}
         <div>
-          <h4 className="text-sm font-bold text-[#6B4423] mb-2">Description</h4>
+          <h4 className="text-sm font-bold text-[#0F172A] mb-2">Description</h4>
           <p className="text-slate-700 leading-relaxed">{standard.description}</p>
         </div>
 
@@ -62,41 +62,41 @@ export const StandardDetail: React.FC<StandardDetailProps> = ({
         <div className="grid grid-cols-2 gap-4">
           {standard.grade && (
             <div>
-              <p className="text-xs font-medium text-[#6B4423] mb-1">Grade</p>
+              <p className="text-xs font-medium text-[#0F172A] mb-1">Grade</p>
               <p className="text-slate-700">Grade {standard.grade}</p>
             </div>
           )}
 
           {standard.subject && (
             <div>
-              <p className="text-xs font-medium text-[#6B4423] mb-1">Subject</p>
+              <p className="text-xs font-medium text-[#0F172A] mb-1">Subject</p>
               <p className="text-slate-700">{standard.subject}</p>
             </div>
           )}
 
           {standard.domain && (
             <div>
-              <p className="text-xs font-medium text-[#6B4423] mb-1">Domain</p>
+              <p className="text-xs font-medium text-[#0F172A] mb-1">Domain</p>
               <p className="text-slate-700">{standard.domain}</p>
             </div>
           )}
 
           {standard.strand && (
             <div>
-              <p className="text-xs font-medium text-[#6B4423] mb-1">Strand</p>
+              <p className="text-xs font-medium text-[#0F172A] mb-1">Strand</p>
               <p className="text-slate-700">{standard.strand}</p>
             </div>
           )}
 
           {standard.version && (
             <div>
-              <p className="text-xs font-medium text-[#6B4423] mb-1">Version</p>
+              <p className="text-xs font-medium text-[#0F172A] mb-1">Version</p>
               <p className="text-slate-700">{standard.version}</p>
             </div>
           )}
 
           <div>
-            <p className="text-xs font-medium text-[#6B4423] mb-1">Created</p>
+            <p className="text-xs font-medium text-[#0F172A] mb-1">Created</p>
             <p className="text-slate-700 text-sm">
               {new Date(standard.created_at).toLocaleDateString()}
             </p>
@@ -114,10 +114,10 @@ export const StandardDetail: React.FC<StandardDetailProps> = ({
 
         {/* Actions */}
         {onAlignClick && (
-          <div className="pt-4 border-t border-[#D2B48C]">
+          <div className="pt-4 border-t border-[#3B82F6]">
             <button
               onClick={() => onAlignClick(standard.id)}
-              className="w-full px-4 py-2 bg-[#8B5A3C] text-white rounded-lg font-medium hover:bg-[#6B4423] transition"
+              className="w-full px-4 py-2 bg-[#1E40AF] text-white rounded-lg font-medium hover:bg-[#0F172A] transition"
             >
               Align Content to This Standard
             </button>

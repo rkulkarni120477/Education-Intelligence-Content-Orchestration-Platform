@@ -33,8 +33,8 @@ export default function AnalyticsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-[#6B4423]">Analytics & Reporting</h1>
-        <p className="text-[#8B5A3C] mt-2">
+        <h1 className="text-4xl font-bold text-[#0F172A]">Analytics & Reporting</h1>
+        <p className="text-[#1E40AF] mt-2">
           Track alignment progress, coverage metrics, and platform performance
         </p>
       </div>
@@ -49,8 +49,8 @@ export default function AnalyticsPage() {
                 onClick={() => setPeriod(p)}
                 className={`px-4 py-2 rounded-lg font-medium transition capitalize ${
                   period === p
-                    ? 'bg-[#8B5A3C] text-white'
-                    : 'bg-[#F0E6D8] text-[#6B4423] hover:bg-[#D2B48C]'
+                    ? 'bg-[#1E40AF] text-white'
+                    : 'bg-[#E8EFFE] text-[#0F172A] hover:bg-[#3B82F6]'
                 }`}
               >
                 Last {p}
@@ -112,15 +112,15 @@ export default function AnalyticsPage() {
         ) : data ? (
           <Card variant="outlined">
             <Card.Header>
-              <h3 className="text-lg font-bold text-[#6B4423]">Content Alignment Status</h3>
+              <h3 className="text-lg font-bold text-[#0F172A]">Content Alignment Status</h3>
             </Card.Header>
 
             <Card.Body>
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-[#6B4423]">Overall Coverage</p>
-                    <p className="text-lg font-bold text-[#8B5A3C]">
+                    <p className="text-sm font-medium text-[#0F172A]">Overall Coverage</p>
+                    <p className="text-lg font-bold text-[#1E40AF]">
                       {data.coverage.alignment_percentage.toFixed(1)}%
                     </p>
                   </div>
@@ -163,14 +163,14 @@ export default function AnalyticsPage() {
         ) : data ? (
           <Card variant="outlined">
             <Card.Header>
-              <h3 className="text-lg font-bold text-[#6B4423]">Standards Coverage</h3>
+              <h3 className="text-lg font-bold text-[#0F172A]">Standards Coverage</h3>
             </Card.Header>
 
             <Card.Body>
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-slate-600">{data.standards.frameworks} Frameworks</p>
-                  <p className="text-2xl font-bold text-[#8B5A3C]">
+                  <p className="text-2xl font-bold text-[#1E40AF]">
                     {data.standards.covered_standards} / {data.standards.standards}
                   </p>
                   <p className="text-sm text-slate-600 mt-1">
@@ -197,16 +197,16 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card variant="outlined">
             <Card.Header>
-              <h3 className="text-lg font-bold text-[#6B4423]">Quality Metrics</h3>
+              <h3 className="text-lg font-bold text-[#0F172A]">Quality Metrics</h3>
             </Card.Header>
 
             <Card.Body>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-[#6B4423] mb-2">
+                  <p className="text-sm font-medium text-[#0F172A] mb-2">
                     Average Confidence Score
                   </p>
-                  <p className="text-3xl font-bold text-[#8B5A3C]">
+                  <p className="text-3xl font-bold text-[#1E40AF]">
                     {(data.quality.avg_confidence_score * 100).toFixed(0)}%
                   </p>
                 </div>
@@ -237,14 +237,14 @@ export default function AnalyticsPage() {
 
           <Card variant="outlined">
             <Card.Header>
-              <h3 className="text-lg font-bold text-[#6B4423]">Review Performance</h3>
+              <h3 className="text-lg font-bold text-[#0F172A]">Review Performance</h3>
             </Card.Header>
 
             <Card.Body>
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-slate-600">Avg Review Time</p>
-                  <p className="text-3xl font-bold text-[#8B5A3C]">
+                  <p className="text-3xl font-bold text-[#1E40AF]">
                     {data.performance.avg_review_time}h
                   </p>
                 </div>
@@ -258,7 +258,7 @@ export default function AnalyticsPage() {
 
                 <div className="pt-2 border-t border-slate-200">
                   <p className="text-xs text-slate-600">Top Reviewer</p>
-                  <p className="text-sm font-bold text-[#6B4423] mt-1">
+                  <p className="text-sm font-bold text-[#0F172A] mt-1">
                     {data.performance.top_reviewer}
                   </p>
                   <p className="text-xs text-slate-600">
@@ -285,7 +285,7 @@ export default function AnalyticsPage() {
               label,
               value: data.timeline.alignments_created[idx],
             }))}
-            color="#8B5A3C"
+            color="#1E40AF"
           />
 
           <SimpleChart
@@ -305,7 +305,7 @@ export default function AnalyticsPage() {
       ) : alignment ? (
         <Card variant="outlined">
           <Card.Header>
-            <h3 className="text-lg font-bold text-[#6B4423]">Alignment by Framework</h3>
+            <h3 className="text-lg font-bold text-[#0F172A]">Alignment by Framework</h3>
           </Card.Header>
 
           <Card.Body>
@@ -313,7 +313,7 @@ export default function AnalyticsPage() {
               {alignment.by_standard_framework.map((framework) => (
                 <div key={framework.name}>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-[#6B4423]">{framework.name}</p>
+                    <p className="text-sm font-medium text-[#0F172A]">{framework.name}</p>
                     <p className="text-xs text-slate-600">
                       {framework.aligned}/{framework.aligned + framework.pending + framework.rejected}
                     </p>
@@ -352,14 +352,14 @@ export default function AnalyticsPage() {
       ) : coverage ? (
         <Card variant="outlined">
           <Card.Header>
-            <h3 className="text-lg font-bold text-[#6B4423]">Coverage by Grade</h3>
+            <h3 className="text-lg font-bold text-[#0F172A]">Coverage by Grade</h3>
           </Card.Header>
 
           <Card.Body>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {coverage.by_grade.map((grade) => (
                 <div key={grade.grade} className="text-center">
-                  <p className="text-2xl font-bold text-[#8B5A3C]">
+                  <p className="text-2xl font-bold text-[#1E40AF]">
                     {grade.coverage.toFixed(0)}%
                   </p>
                   <p className="text-sm text-slate-600 mt-1">Grade {grade.grade}</p>

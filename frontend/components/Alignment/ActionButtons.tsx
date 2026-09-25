@@ -71,7 +71,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   return (
     <Card variant="outlined">
       <Card.Header>
-        <h3 className="text-lg font-bold text-[#6B4423]">Your Decision</h3>
+        <h3 className="text-lg font-bold text-[#0F172A]">Your Decision</h3>
         <p className="text-sm text-slate-600 mt-1">Accept or reject this alignment</p>
       </Card.Header>
 
@@ -135,7 +135,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
       <Card.Footer>
         <div className="space-y-2 text-sm">
-          <p className="font-medium text-[#6B4423]">What each action means:</p>
+          <p className="font-medium text-[#0F172A]">What each action means:</p>
           <ul className="space-y-1 text-slate-600 text-xs">
             <li><strong>Approve:</strong> Confirms this is a valid alignment. Content will be marked as aligned.</li>
             <li><strong>Reject:</strong> This is not a valid alignment. Content will not be aligned to this standard.</li>

@@ -108,8 +108,8 @@ export default function DraftsPage() {
       <div>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-[#6B4423]">Authoring Drafts</h1>
-            <p className="text-[#8B5A3C] mt-2">Manage and edit your lesson and assessment drafts</p>
+            <h1 className="text-4xl font-bold text-[#0F172A]">Authoring Drafts</h1>
+            <p className="text-[#1E40AF] mt-2">Manage and edit your lesson and assessment drafts</p>
           </div>
           <Link href="/authoring">
             <Button variant="primary">+ Create New</Button>
@@ -122,11 +122,11 @@ export default function DraftsPage() {
         <Card.Body>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">Sort By</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'modified' | 'created' | 'title')}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="modified">Last Modified</option>
                 <option value="created">Created Date</option>
@@ -135,11 +135,11 @@ export default function DraftsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">Type</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">Type</label>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as 'all' | 'lesson' | 'activity' | 'assessment')}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="all">All Types</option>
                 <option value="lesson">Lessons</option>
@@ -149,11 +149,11 @@ export default function DraftsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">Status</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">Status</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as 'all' | 'draft' | 'published')}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="all">All Status</option>
                 <option value="draft">Drafts</option>
@@ -180,7 +180,7 @@ export default function DraftsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredDrafts.map((draft) => (
-            <Card key={draft.id} variant="outlined" className="hover:bg-[#FFF8F0] transition">
+            <Card key={draft.id} variant="outlined" className="hover:bg-[#FFFFFF] transition">
               <Card.Body>
                 <div className="flex items-start justify-between gap-4">
                   {/* Draft Info */}
@@ -188,7 +188,7 @@ export default function DraftsPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-2xl">{typeEmoji[draft.type]}</span>
                       <div>
-                        <h3 className="text-lg font-bold text-[#6B4423]">{draft.title}</h3>
+                        <h3 className="text-lg font-bold text-[#0F172A]">{draft.title}</h3>
                         <p className="text-sm text-slate-600">
                           Grade {draft.grade} • {draft.subject}
                         </p>

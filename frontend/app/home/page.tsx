@@ -30,16 +30,16 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-[#8B5A3C] to-[#6B4423] text-white p-8 rounded-lg shadow-lg">
+      <div className="bg-gradient-to-r from-[#1E40AF] to-[#0F172A] text-white p-8 rounded-lg shadow-lg">
         <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name || user?.email}!</h1>
-        <p className="text-[#F5DEB3] text-lg">
+        <p className="text-[#E0F2FE] text-lg">
           {user?.role ? `You are logged in as ${user.role.replace(/_/g, ' ')}` : ''}
         </p>
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-2xl font-bold text-[#6B4423] mb-4">⚡ Quick Actions</h2>
+        <h2 className="text-2xl font-bold text-[#0F172A] mb-4">⚡ Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link href="/content">
             <Button variant="primary" className="w-full h-full py-6">
@@ -68,7 +68,7 @@ export default function HomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Processing Jobs */}
         <div>
-          <h3 className="text-xl font-bold text-[#6B4423] mb-4">📊 Processing Jobs</h3>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">📊 Processing Jobs</h3>
           {processingJobsQuery.isLoading ? (
             <Skeleton className="h-48" />
           ) : processingJobs.length > 0 ? (
@@ -76,15 +76,15 @@ export default function HomePage() {
               {processingJobs.map((job) => (
                 <div
                   key={job.id}
-                  className="pb-3 border-b border-[#D2B48C] last:border-b-0 last:pb-0"
+                  className="pb-3 border-b border-[#3B82F6] last:border-b-0 last:pb-0"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium text-[#6B4423]">Content Processing</p>
+                    <p className="font-medium text-[#0F172A]">Content Processing</p>
                     <p className="text-sm text-slate-500">{job.progress}%</p>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div
-                      className="bg-[#8B5A3C] h-2 rounded-full transition-all"
+                      className="bg-[#1E40AF] h-2 rounded-full transition-all"
                       style={{ width: `${job.progress}%` }}
                     ></div>
                   </div>
@@ -102,7 +102,7 @@ export default function HomePage() {
 
         {/* Items Awaiting Review */}
         <div>
-          <h3 className="text-xl font-bold text-[#6B4423] mb-4">🔍 Awaiting Review</h3>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">🔍 Awaiting Review</h3>
           {contentQuery.isLoading ? (
             <Skeleton className="h-48" />
           ) : reviewItems.length > 0 ? (
@@ -110,15 +110,15 @@ export default function HomePage() {
               <Card.Body className="space-y-3">
                 {reviewItems.map((item) => (
                   <Link key={item.id} href="/content" className="block">
-                    <div className="pb-3 border-b border-[#D2B48C] last:border-b-0 last:pb-0 hover:bg-[#FFF8F0] -mx-4 px-4 py-3 rounded cursor-pointer transition">
-                      <p className="font-medium text-[#6B4423] hover:text-[#8B5A3C]">
+                    <div className="pb-3 border-b border-[#3B82F6] last:border-b-0 last:pb-0 hover:bg-[#FFFFFF] -mx-4 px-4 py-3 rounded cursor-pointer transition">
+                      <p className="font-medium text-[#0F172A] hover:text-[#1E40AF]">
                         {item.title}
                       </p>
                       <p className="text-sm text-slate-500 mt-1">{item.subject || 'General'}</p>
                     </div>
                   </Link>
                 ))}
-                <Link href="/content" className="text-sm text-[#8B5A3C] font-medium hover:text-[#6B4423]">
+                <Link href="/content" className="text-sm text-[#1E40AF] font-medium hover:text-[#0F172A]">
                   View all ({contentQuery.data?.total || 0})
                 </Link>
               </Card.Body>
@@ -134,7 +134,7 @@ export default function HomePage() {
 
         {/* Recent Alignments */}
         <div>
-          <h3 className="text-xl font-bold text-[#6B4423] mb-4">🎯 Recent Alignments</h3>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">🎯 Recent Alignments</h3>
           {alignmentsQuery.isLoading ? (
             <Skeleton className="h-48" />
           ) : recentAlignments.length > 0 ? (
@@ -143,10 +143,10 @@ export default function HomePage() {
                 {recentAlignments.map((alignment) => (
                   <div
                     key={alignment.id}
-                    className="pb-3 border-b border-[#D2B48C] last:border-b-0 last:pb-0"
+                    className="pb-3 border-b border-[#3B82F6] last:border-b-0 last:pb-0"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-[#6B4423]">
+                      <p className="font-medium text-[#0F172A]">
                         {alignment.source_type === 'content' ? 'Content' : 'Lesson'} Alignment
                       </p>
                       <StatusBadge status={alignment.status} />
@@ -169,7 +169,7 @@ export default function HomePage() {
 
         {/* Recent Lessons */}
         <div>
-          <h3 className="text-xl font-bold text-[#6B4423] mb-4">📚 Recent Lessons</h3>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">📚 Recent Lessons</h3>
           {lessonsQuery.isLoading ? (
             <Skeleton className="h-48" />
           ) : recentLessons.length > 0 ? (
@@ -178,10 +178,10 @@ export default function HomePage() {
                 {recentLessons.map((lesson) => (
                   <div
                     key={lesson.id}
-                    className="pb-3 border-b border-[#D2B48C] last:border-b-0 last:pb-0"
+                    className="pb-3 border-b border-[#3B82F6] last:border-b-0 last:pb-0"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-[#6B4423] truncate hover:text-[#8B5A3C]">
+                      <p className="font-medium text-[#0F172A] truncate hover:text-[#1E40AF]">
                         {lesson.title}
                       </p>
                       <StatusBadge status={lesson.status} />
@@ -205,32 +205,32 @@ export default function HomePage() {
 
       {/* Statistics */}
       <div>
-        <h3 className="text-xl font-bold text-[#6B4423] mb-4">📈 Statistics</h3>
+        <h3 className="text-xl font-bold text-[#0F172A] mb-4">📈 Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#8B5A3C]">{contentQuery.data?.total || 0}</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{contentQuery.data?.total || 0}</p>
               <p className="text-sm text-slate-600 mt-2">Content Assets</p>
             </Card.Body>
           </Card>
 
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#8B5A3C]">{processingJobs.length}</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{processingJobs.length}</p>
               <p className="text-sm text-slate-600 mt-2">Active Jobs</p>
             </Card.Body>
           </Card>
 
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#8B5A3C]">{recentAlignments.length}</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{recentAlignments.length}</p>
               <p className="text-sm text-slate-600 mt-2">Alignments</p>
             </Card.Body>
           </Card>
 
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#8B5A3C]">{recentLessons.length}</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{recentLessons.length}</p>
               <p className="text-sm text-slate-600 mt-2">Lessons</p>
             </Card.Body>
           </Card>

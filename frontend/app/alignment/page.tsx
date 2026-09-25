@@ -99,8 +99,8 @@ export default function AlignmentWorkspacePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-[#6B4423]">Alignment Workspace</h1>
-        <p className="text-[#8B5A3C] mt-2">
+        <h1 className="text-4xl font-bold text-[#0F172A]">Alignment Workspace</h1>
+        <p className="text-[#1E40AF] mt-2">
           Review and approve candidate standard alignments based on evidence
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function AlignmentWorkspacePage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-2xl font-bold text-[#8B5A3C]">{candidates.length}</p>
+            <p className="text-2xl font-bold text-[#1E40AF]">{candidates.length}</p>
             <p className="text-xs text-slate-600 mt-1">Candidates</p>
           </Card.Body>
         </Card>
@@ -149,7 +149,7 @@ export default function AlignmentWorkspacePage() {
 
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-2xl font-bold text-[#8B5A3C]">{avgConfidence}%</p>
+            <p className="text-2xl font-bold text-[#1E40AF]">{avgConfidence}%</p>
             <p className="text-xs text-slate-600 mt-1">Avg Confidence</p>
           </Card.Body>
         </Card>
@@ -174,7 +174,7 @@ export default function AlignmentWorkspacePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Candidates List */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-bold text-[#6B4423] mb-3">Candidates</h3>
+            <h3 className="text-lg font-bold text-[#0F172A] mb-3">Candidates</h3>
             <div className="max-h-96 overflow-auto">
               <CandidatesList
                 candidates={candidates}
@@ -187,7 +187,7 @@ export default function AlignmentWorkspacePage() {
 
           {/* Evidence Inspector */}
           <div className="lg:col-span-2">
-            <h3 className="text-lg font-bold text-[#6B4423] mb-3">Evidence</h3>
+            <h3 className="text-lg font-bold text-[#0F172A] mb-3">Evidence</h3>
             <div className="max-h-96 overflow-auto">
               <EvidenceInspector
                 alignment={selectedAlignment || null}
@@ -198,7 +198,7 @@ export default function AlignmentWorkspacePage() {
 
           {/* Action Buttons */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-bold text-[#6B4423] mb-3">Decision</h3>
+            <h3 className="text-lg font-bold text-[#0F172A] mb-3">Decision</h3>
             <ActionButtons
               alignmentId={selectedAlignment?.id || ''}
               isLoading={approveMutation.isLoading || rejectMutation.isLoading}

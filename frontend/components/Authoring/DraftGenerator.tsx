@@ -57,7 +57,7 @@ export const DraftGenerator: React.FC<DraftGeneratorProps> = ({
       <div>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-[#6B4423]">{artifactTitle}</h2>
+            <h2 className="text-2xl font-bold text-[#0F172A]">{artifactTitle}</h2>
             <p className="text-slate-600 mt-1">
               AI-generated {artifactType} draft — edit sections, regenerate parts, save as draft
             </p>
@@ -103,13 +103,13 @@ export const DraftGenerator: React.FC<DraftGeneratorProps> = ({
               {/* Section Header */}
               <button
                 onClick={() => setExpandedId(isExpanded ? '' : section.id)}
-                className="w-full text-left p-4 hover:bg-[#FFF8F0] transition"
+                className="w-full text-left p-4 hover:bg-[#FFFFFF] transition"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{config.icon}</span>
                     <div>
-                      <h3 className="text-lg font-bold text-[#6B4423]">{config.label}</h3>
+                      <h3 className="text-lg font-bold text-[#0F172A]">{config.label}</h3>
                       {!isExpanded && (
                         <p className="text-sm text-slate-600 line-clamp-1">
                           {section.content.substring(0, 100)}...
@@ -123,7 +123,7 @@ export const DraftGenerator: React.FC<DraftGeneratorProps> = ({
                         {section.citations.length} source{section.citations.length !== 1 ? 's' : ''}
                       </Badge>
                     )}
-                    <span className="text-[#8B5A3C] font-bold">
+                    <span className="text-[#1E40AF] font-bold">
                       {isExpanded ? '−' : '+'}
                     </span>
                   </div>
@@ -142,7 +142,7 @@ export const DraftGenerator: React.FC<DraftGeneratorProps> = ({
                         <textarea
                           value={section.content}
                           onChange={(e) => onSectionChange(section.id, e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white font-mono text-sm h-64 resize-none"
+                          className="w-full px-4 py-3 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white font-mono text-sm h-64 resize-none"
                         />
 
                         <div className="flex gap-2">
@@ -174,11 +174,11 @@ export const DraftGenerator: React.FC<DraftGeneratorProps> = ({
                         {/* Citations */}
                         {section.citations && section.citations.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-[#E8DCC8]">
-                            <p className="text-sm font-bold text-[#6B4423] mb-2">Sources</p>
+                            <p className="text-sm font-bold text-[#0F172A] mb-2">Sources</p>
                             <ul className="space-y-2">
                               {section.citations.map((citation, idx) => (
                                 <li key={idx} className="text-xs text-slate-600 flex gap-2">
-                                  <span className="text-[#8B5A3C] font-bold">[{idx + 1}]</span>
+                                  <span className="text-[#1E40AF] font-bold">[{idx + 1}]</span>
                                   <span>{citation}</span>
                                 </li>
                               ))}

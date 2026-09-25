@@ -18,11 +18,11 @@ export const SourceReference: React.FC<SourceReferenceProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`bg-slate-50 border-l-4 border-[#8B5A3C] p-3 rounded ${className}`}>
+    <div className={`bg-slate-50 border-l-4 border-[#1E40AF] p-3 rounded ${className}`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-[#6B4423]">Source Reference</p>
+          <p className="text-sm font-medium text-[#0F172A]">Source Reference</p>
           <p className="text-xs text-slate-600 mt-1">{source}</p>
         </div>
       </div>

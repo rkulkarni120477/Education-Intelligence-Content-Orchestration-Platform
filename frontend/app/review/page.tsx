@@ -88,8 +88,8 @@ export default function ReviewInboxPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-[#6B4423]">Review Inbox</h1>
-        <p className="text-[#8B5A3C] mt-2">
+        <h1 className="text-4xl font-bold text-[#0F172A]">Review Inbox</h1>
+        <p className="text-[#1E40AF] mt-2">
           Approve, reject, or request changes to submissions
         </p>
       </div>
@@ -135,7 +135,7 @@ export default function ReviewInboxPage() {
 
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-2xl font-bold text-[#8B5A3C]">
+              <p className="text-2xl font-bold text-[#1E40AF]">
                 {Math.round(stats.data.avgResolutionTime || 0)}h
               </p>
               <p className="text-xs text-slate-600 mt-1">Avg Time</p>
@@ -158,8 +158,8 @@ export default function ReviewInboxPage() {
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition capitalize ${
                     filterStatus === status
-                      ? 'bg-[#8B5A3C] text-white'
-                      : 'bg-[#F0E6D8] text-[#6B4423] hover:bg-[#D2B48C]'
+                      ? 'bg-[#1E40AF] text-white'
+                      : 'bg-[#E8EFFE] text-[#0F172A] hover:bg-[#3B82F6]'
                   }`}
                 >
                   {status}
@@ -174,7 +174,7 @@ export default function ReviewInboxPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Queue List */}
         <div className="lg:col-span-1">
-          <h3 className="text-lg font-bold text-[#6B4423] mb-3">
+          <h3 className="text-lg font-bold text-[#0F172A] mb-3">
             Queue ({items.length})
           </h3>
 
@@ -228,7 +228,7 @@ export default function ReviewInboxPage() {
                 <Card.Header>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h2 className="text-2xl font-bold text-[#6B4423]">
+                      <h2 className="text-2xl font-bold text-[#0F172A]">
                         {selectedItem.data.title}
                       </h2>
                       <p className="text-sm text-slate-600 mt-1">
@@ -255,13 +255,13 @@ export default function ReviewInboxPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-slate-600 uppercase">Type</p>
-                      <p className="font-bold text-[#6B4423] capitalize">
+                      <p className="font-bold text-[#0F172A] capitalize">
                         {selectedItem.data.type}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-600 uppercase">Priority</p>
-                      <p className="font-bold text-[#6B4423] capitalize">
+                      <p className="font-bold text-[#0F172A] capitalize">
                         {selectedItem.data.priority}
                       </p>
                     </div>
@@ -282,7 +282,7 @@ export default function ReviewInboxPage() {
               {selectedItem.data.content && (
                 <Card variant="outlined">
                   <Card.Header>
-                    <h3 className="font-bold text-[#6B4423]">Content Preview</h3>
+                    <h3 className="font-bold text-[#0F172A]">Content Preview</h3>
                   </Card.Header>
 
                   <Card.Body>
@@ -300,7 +300,7 @@ export default function ReviewInboxPage() {
               {selectedItem.data.metrics && (
                 <Card variant="outlined">
                   <Card.Header>
-                    <h3 className="font-bold text-[#6B4423]">Metrics</h3>
+                    <h3 className="font-bold text-[#0F172A]">Metrics</h3>
                   </Card.Header>
 
                   <Card.Body>
@@ -311,7 +311,7 @@ export default function ReviewInboxPage() {
                             <p className="text-xs text-slate-600 uppercase">
                               {key.replace(/_/g, ' ')}
                             </p>
-                            <p className="text-lg font-bold text-[#6B4423]">
+                            <p className="text-lg font-bold text-[#0F172A]">
                               {typeof value === 'number'
                                 ? value.toFixed(2)
                                 : String(value)}

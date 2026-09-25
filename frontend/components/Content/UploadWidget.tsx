@@ -88,8 +88,8 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
   return (
     <Card variant="outlined" className="max-w-2xl">
       <Card.Header>
-        <h3 className="text-lg font-bold text-[#6B4423]">Upload New Content</h3>
-        <p className="text-sm text-[#8B5A3C] mt-1">
+        <h3 className="text-lg font-bold text-[#0F172A]">Upload New Content</h3>
+        <p className="text-sm text-[#1E40AF] mt-1">
           Upload a PDF, Word document, or image to add to your library
         </p>
       </Card.Header>
@@ -103,14 +103,14 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition ${
               isDragging
-                ? 'border-[#8B5A3C] bg-[#FFF8F0]'
-                : 'border-[#D2B48C] hover:border-[#8B5A3C] hover:bg-[#FFF8F0]'
+                ? 'border-[#1E40AF] bg-[#FFFFFF]'
+                : 'border-[#3B82F6] hover:border-[#1E40AF] hover:bg-[#FFFFFF]'
             }`}
           >
             {file ? (
               <div>
-                <p className="text-[#6B4423] font-medium">✓ File selected</p>
-                <p className="text-sm text-[#8B5A3C]">{file.name}</p>
+                <p className="text-[#0F172A] font-medium">✓ File selected</p>
+                <p className="text-sm text-[#1E40AF]">{file.name}</p>
                 <p className="text-xs text-slate-500 mt-2">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
@@ -126,7 +126,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
               </div>
             ) : (
               <div>
-                <p className="text-[#6B4423] font-medium mb-2">
+                <p className="text-[#0F172A] font-medium mb-2">
                   Drag and drop your file here, or click to select
                 </p>
                 <p className="text-sm text-slate-500">
@@ -141,7 +141,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
                 />
                 <label
                   htmlFor="file-input"
-                  className="inline-block mt-4 px-4 py-2 bg-[#8B5A3C] text-white rounded-lg cursor-pointer hover:bg-[#6B4423] transition"
+                  className="inline-block mt-4 px-4 py-2 bg-[#1E40AF] text-white rounded-lg cursor-pointer hover:bg-[#0F172A] transition"
                 >
                   Select File
                 </label>
@@ -151,7 +151,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
 
           {/* Form Fields */}
           <div>
-            <label className="block text-sm font-medium text-[#6B4423] mb-2">
+            <label className="block text-sm font-medium text-[#0F172A] mb-2">
               Title *
             </label>
             <input
@@ -159,32 +159,32 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., 'Introduction to Algebra'"
-              className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+              className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#6B4423] mb-2">
+            <label className="block text-sm font-medium text-[#0F172A] mb-2">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of the content..."
-              className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white h-20 resize-none"
+              className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white h-20 resize-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Subject
               </label>
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="">Select a subject...</option>
                 {subjectOptions.map(s => (
@@ -196,13 +196,13 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Grade
               </label>
               <select
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="">Select a grade...</option>
                 {gradeOptions.map(g => (
@@ -215,7 +215,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#6B4423] mb-2">
+            <label className="block text-sm font-medium text-[#0F172A] mb-2">
               Tags (comma-separated)
             </label>
             <input
@@ -223,7 +223,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g., algebra, interactive, video"
-              className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+              className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
             />
           </div>
 

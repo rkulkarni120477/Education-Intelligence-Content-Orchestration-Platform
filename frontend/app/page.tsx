@@ -36,8 +36,11 @@ export default function LoginPage() {
         }
         console.log('Setting auth token:', authData)
         localStorage.setItem('auth_token', JSON.stringify(authData))
-        console.log('Auth token set, redirecting...')
+        const storedData = localStorage.getItem('auth_token')
+        console.log('Verified auth token in localStorage:', storedData)
+        console.log('Auth token set, redirecting to /home...')
         setTimeout(() => {
+          console.log('Executing redirect to /home')
           window.location.href = '/home'
         }, 100)
       } catch (err) {
@@ -60,13 +63,13 @@ export default function LoginPage() {
         {/* Logo and Branding */}
         <div className="text-center mb-8">
           <img src="/academian-logo.png" alt="Academian Logo" className="h-32 mx-auto mb-6" />
-          <h1 className="text-4xl font-bold text-[#6B4423]">Academian</h1>
-          <p className="text-[#8B5A3C] text-lg mt-2">Education Platform</p>
+          <h1 className="text-4xl font-bold text-[#0F172A]">Academian</h1>
+          <p className="text-[#1E40AF] text-lg mt-2">Education Platform</p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleLogin} className="bg-white rounded-lg shadow-lg p-8 border-2 border-[#8B5A3C]">
-          <h2 className="text-2xl font-bold text-[#6B4423] mb-6">Sign In</h2>
+        <form onSubmit={handleLogin} className="bg-white rounded-lg shadow-lg p-8 border-2 border-[#1E40AF]">
+          <h2 className="text-2xl font-bold text-[#0F172A] mb-6">Sign In</h2>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
@@ -76,7 +79,7 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-[#0F172A] mb-2">
                 Email Address
               </label>
               <input
@@ -85,13 +88,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="rkulkarni@academian.com"
-                className="w-full px-4 py-3 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-[#FFF8F0]"
+                className="w-full px-4 py-3 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-[#FFFFFF]"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-[#0F172A] mb-2">
                 Password
               </label>
               <input
@@ -100,7 +103,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-[#FFF8F0]"
+                className="w-full px-4 py-3 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-[#FFFFFF]"
                 required
               />
             </div>
@@ -109,18 +112,18 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 bg-gradient-to-r from-[#8B5A3C] to-[#6B4423] text-white font-semibold py-3 rounded-lg hover:from-[#6B4423] hover:to-[#5A3A1F] transition disabled:opacity-60"
+            className="w-full mt-6 bg-gradient-to-r from-[#1E40AF] to-[#0F172A] text-white font-semibold py-3 rounded-lg hover:from-[#0F172A] hover:to-[#1E3A8A] transition disabled:opacity-60"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <p className="text-center text-[#8B5A3C] text-sm mt-4">
+          <p className="text-center text-[#1E40AF] text-sm mt-4">
             AWS IAM authentication coming soon
           </p>
         </form>
 
         {/* Footer */}
-        <p className="text-center text-[#A0826D] text-xs mt-6">
+        <p className="text-center text-[#2563EB] text-xs mt-6">
           © 2026 Academian Education. All rights reserved.
         </p>
       </div>

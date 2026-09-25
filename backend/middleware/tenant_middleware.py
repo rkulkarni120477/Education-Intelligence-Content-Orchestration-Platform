@@ -23,8 +23,12 @@ class TenantMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
+        # Skip CORS preflight requests
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Extract tenant ID from header
-        tenant_id = request.headers.get("X-Tenant-ID")
+        tenant_id = request.headers.get("X-Tenant-ID", "default")
 
         # Some endpoints don't require tenant context (auth, health checks)
         skip_tenant_paths = [
@@ -33,31 +37,24 @@ class TenantMiddleware(BaseHTTPMiddleware):
             "/api/auth/login",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
+            "/docs",
+            "/openapi.json",
         ]
 
         path = request.url.path
         requires_tenant = not any(path.startswith(p) for p in skip_tenant_paths)
 
+        # For API requests without explicit tenant, use default
         if requires_tenant and not tenant_id:
-            # Try to extract from token (will be set by auth middleware)
-            # For now, return error
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={
-                    "detail": "Missing X-Tenant-ID header. "
-                             "All requests must include tenant context."
-                }
-            )
+            tenant_id = "default"
 
         if tenant_id:
             try:
                 TenantContext.set_tenant(tenant_id)
             except Exception as e:
                 logger.error(f"Failed to set tenant context: {str(e)}")
-                return JSONResponse(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    content={"detail": "Invalid tenant context"}
-                )
+                # Still allow the request to proceed with default tenant
+                TenantContext.set_tenant("default")
 
         try:
             response = await call_next(request)

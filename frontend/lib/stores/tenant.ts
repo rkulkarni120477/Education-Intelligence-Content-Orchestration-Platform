@@ -39,46 +39,60 @@ export interface TenantStore {
   clearError: () => void
 }
 
-export const useTenantStore = create<TenantStore>((set, get) => ({
-  tenant: null,
-  organization: null,
-  tenants: [],
-  organizations: [],
-  isLoading: false,
-  error: null,
+export const useTenantStore = create<TenantStore>((set, get) => {
+  // Initialize with default tenant
+  const defaultTenant: Tenant = {
+    id: 'default',
+    name: 'Default Workspace',
+    slug: 'default',
+    type: 'organization',
+    status: 'active',
+    subscription_tier: 'pro',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
 
-  setTenant: (tenant) => {
-    apiClient.setTenantId(tenant.id)
-    set({ tenant })
-  },
+  return {
+    tenant: defaultTenant,
+    organization: null,
+    tenants: [],
+    organizations: [],
+    isLoading: false,
+    error: null,
 
-  setOrganization: (org) => set({ organization: org }),
+    setTenant: (tenant) => {
+      apiClient.setTenantId(tenant.id)
+      set({ tenant })
+    },
 
-  setTenants: (tenants) => set({ tenants }),
+    setOrganization: (org) => set({ organization: org }),
 
-  setOrganizations: (orgs) => set({ organizations: orgs }),
+    setTenants: (tenants) => set({ tenants }),
 
-  switchTenant: async (tenantId) => {
-    set({ isLoading: true, error: null })
-    try {
-      const response = await apiClient.get<Tenant>(`/api/v1/tenants/${tenantId}`)
-      const tenant = response.data
+    setOrganizations: (orgs) => set({ organizations: orgs }),
 
-      get().setTenant(tenant)
-      set({ isLoading: false })
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to switch tenant'
-      set({ error: errorMessage, isLoading: false })
-      throw error
-    }
-  },
+    switchTenant: async (tenantId) => {
+      set({ isLoading: true, error: null })
+      try {
+        const response = await apiClient.get<Tenant>(`/api/v1/tenants/${tenantId}`)
+        const tenant = response.data
 
-  switchOrganization: (orgId) => {
-    const org = get().organizations.find((o) => o.id === orgId)
-    if (org) {
-      get().setOrganization(org)
-    }
-  },
+        get().setTenant(tenant)
+        set({ isLoading: false })
+      } catch (error: any) {
+        const errorMessage = error.message || 'Failed to switch tenant'
+        set({ error: errorMessage, isLoading: false })
+        throw error
+      }
+    },
 
-  clearError: () => set({ error: null }),
-}))
+    switchOrganization: (orgId) => {
+      const org = get().organizations.find((o) => o.id === orgId)
+      if (org) {
+        get().setOrganization(org)
+      }
+    },
+
+    clearError: () => set({ error: null }),
+  }
+})

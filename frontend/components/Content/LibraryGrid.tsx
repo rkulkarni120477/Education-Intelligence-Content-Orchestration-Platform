@@ -41,7 +41,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
   if (assets.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#8B5A3C] text-lg font-medium mb-2">No content found</p>
+        <p className="text-[#1E40AF] text-lg font-medium mb-2">No content found</p>
         <p className="text-slate-500">Upload content to get started</p>
       </div>
     )
@@ -61,7 +61,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
             <Card.Header>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-[#6B4423] truncate hover:text-[#8B5A3C]">
+                  <h3 className="font-bold text-[#0F172A] truncate hover:text-[#1E40AF]">
                     {asset.title}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
@@ -81,13 +81,13 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
               <div className="space-y-2 text-sm">
                 {asset.subject && (
                   <p>
-                    <span className="font-medium text-[#6B4423]">Subject:</span>{' '}
+                    <span className="font-medium text-[#0F172A]">Subject:</span>{' '}
                     <span className="text-slate-600">{asset.subject}</span>
                   </p>
                 )}
                 {asset.grade && (
                   <p>
-                    <span className="font-medium text-[#6B4423]">Grade:</span>{' '}
+                    <span className="font-medium text-[#0F172A]">Grade:</span>{' '}
                     <span className="text-slate-600">{asset.grade}</span>
                   </p>
                 )}
@@ -124,7 +124,7 @@ export const LibraryGrid: React.FC<LibraryGridProps> = ({
                 <div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div
-                      className="bg-[#8B5A3C] h-2 rounded-full transition-all"
+                      className="bg-[#1E40AF] h-2 rounded-full transition-all"
                       style={{ width: `${asset.upload_progress}%` }}
                     ></div>
                   </div>

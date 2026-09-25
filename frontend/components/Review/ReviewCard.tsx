@@ -45,8 +45,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   return (
     <Card
       variant="outlined"
-      className={`cursor-pointer transition hover:bg-[#FFF8F0] ${
-        isSelected ? 'ring-2 ring-[#8B5A3C] bg-[#FFF8F0]' : ''
+      className={`cursor-pointer transition hover:bg-[#FFFFFF] ${
+        isSelected ? 'ring-2 ring-[#1E40AF] bg-[#FFFFFF]' : ''
       }`}
       onClick={() => onSelect(item)}
     >
@@ -59,7 +59,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 {typeEmoji[item.type]}
               </span>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-[#6B4423] truncate">
+                <h3 className="text-lg font-bold text-[#0F172A] truncate">
                   {item.title}
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">

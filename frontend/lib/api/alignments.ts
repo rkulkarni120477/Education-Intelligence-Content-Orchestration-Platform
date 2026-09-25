@@ -44,10 +44,10 @@ export const useAlignments = (
       if (sourceType) params.append('source_type', sourceType)
       if (sourceId) params.append('source_id', sourceId)
 
-      const response = await apiClient.get<Alignment[]>(
+      const response = await apiClient.get<{ alignments: Alignment[] }>(
         `/api/v1/alignments?${params.toString()}`
       )
-      return response.data
+      return Array.isArray(response.data) ? response.data : response.data.alignments || []
     },
     {
       staleTime: 5 * 60 * 1000,

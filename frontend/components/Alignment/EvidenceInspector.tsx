@@ -44,7 +44,7 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
       <Card.Header>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-lg font-bold text-[#6B4423]">Evidence & Rationale</h3>
+            <h3 className="text-lg font-bold text-[#0F172A]">Evidence & Rationale</h3>
             <p className="text-sm text-slate-500 mt-1">
               Why this {alignment.target_type === 'standard' ? 'standard' : 'objective'} matches
             </p>
@@ -56,11 +56,11 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
       <Card.Body className="space-y-6">
         {/* Confidence Explanation */}
         <div>
-          <h4 className="text-sm font-bold text-[#6B4423] mb-2">Match Confidence</h4>
+          <h4 className="text-sm font-bold text-[#0F172A] mb-2">Match Confidence</h4>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-700">Confidence Score</span>
-              <span className="text-lg font-bold text-[#8B5A3C]">{confidencePercent}%</span>
+              <span className="text-lg font-bold text-[#1E40AF]">{confidencePercent}%</span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-3">
               <div
@@ -87,7 +87,7 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
         {/* Evidence Section */}
         {alignment.evidence && alignment.evidence.length > 0 ? (
           <div>
-            <h4 className="text-sm font-bold text-[#6B4423] mb-3">
+            <h4 className="text-sm font-bold text-[#0F172A] mb-3">
               Supporting Evidence ({alignment.evidence.length} items)
             </h4>
             <div className="space-y-3">
@@ -110,11 +110,11 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
 
         {/* Alignment Details */}
         <div>
-          <h4 className="text-sm font-bold text-[#6B4423] mb-3">Alignment Details</h4>
+          <h4 className="text-sm font-bold text-[#0F172A] mb-3">Alignment Details</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between py-2 border-b border-slate-200">
               <span className="text-slate-600">Alignment Status</span>
-              <span className="font-medium text-[#6B4423] capitalize">
+              <span className="font-medium text-[#0F172A] capitalize">
                 {alignment.status}
               </span>
             </div>

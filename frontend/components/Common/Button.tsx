@@ -12,11 +12,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#8B5A3C] text-white hover:bg-[#6B4423] border-2 border-[#8B5A3C] hover:border-[#6B4423]',
+    'bg-[#1E40AF] text-white hover:bg-[#0F172A] border-2 border-[#1E40AF] hover:border-[#0F172A]',
   secondary:
-    'bg-white text-[#8B5A3C] hover:bg-[#FFF8F0] border-2 border-[#8B5A3C] hover:border-[#6B4423]',
+    'bg-white text-[#1E40AF] hover:bg-[#FFFFFF] border-2 border-[#1E40AF] hover:border-[#0F172A]',
   tertiary:
-    'bg-transparent text-[#8B5A3C] hover:bg-[#FFF8F0] border-0 underline hover:no-underline',
+    'bg-transparent text-[#1E40AF] hover:bg-[#FFFFFF] border-0 underline hover:no-underline',
   danger: 'bg-red-600 text-white hover:bg-red-700 border-2 border-red-600 hover:border-red-700',
   success:
     'bg-green-600 text-white hover:bg-green-700 border-2 border-green-600 hover:border-green-700',
@@ -48,7 +48,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={`
           font-medium rounded-lg transition
           disabled:opacity-60 disabled:cursor-not-allowed
-          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8B5A3C]
+          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1E40AF]
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${className}

@@ -50,7 +50,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onFilter, isLoad
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by title, description, or tags..."
-          className="flex-1 px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+          className="flex-1 px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
         />
         <Button
           type="submit"
@@ -70,16 +70,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onFilter, isLoad
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-[#FFF8F0] border-2 border-[#D2B48C] rounded-lg p-4 grid grid-cols-3 gap-4">
+        <div className="bg-[#FFFFFF] border-2 border-[#3B82F6] rounded-lg p-4 grid grid-cols-3 gap-4">
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-[#6B4423] mb-2">
+            <label className="block text-sm font-medium text-[#0F172A] mb-2">
               Status
             </label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] text-sm bg-white"
+              className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] text-sm bg-white"
             >
               <option value="">All Statuses</option>
               {statusOptions.map(status => (
@@ -92,13 +92,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onFilter, isLoad
 
           {/* Subject Filter */}
           <div>
-            <label className="block text-sm font-medium text-[#6B4423] mb-2">
+            <label className="block text-sm font-medium text-[#0F172A] mb-2">
               Subject
             </label>
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] text-sm bg-white"
+              className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] text-sm bg-white"
             >
               <option value="">All Subjects</option>
               {subjectOptions.map(subject => (
@@ -111,13 +111,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onFilter, isLoad
 
           {/* Grade Filter */}
           <div>
-            <label className="block text-sm font-medium text-[#6B4423] mb-2">
+            <label className="block text-sm font-medium text-[#0F172A] mb-2">
               Grade
             </label>
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] text-sm bg-white"
+              className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] text-sm bg-white"
             >
               <option value="">All Grades</option>
               {gradeOptions.map(grade => (

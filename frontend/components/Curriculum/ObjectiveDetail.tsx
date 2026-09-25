@@ -56,7 +56,7 @@ export const ObjectiveDetail: React.FC<ObjectiveDetailProps> = ({
   return (
     <Card variant="outlined" className="h-full overflow-auto">
       <Card.Header>
-        <h3 className="text-lg font-bold text-[#6B4423]">Learning Objective</h3>
+        <h3 className="text-lg font-bold text-[#0F172A]">Learning Objective</h3>
         {curriculum && (
           <p className="text-sm text-slate-500 mt-1">
             {curriculum.name}
@@ -69,14 +69,14 @@ export const ObjectiveDetail: React.FC<ObjectiveDetailProps> = ({
       <Card.Body className="space-y-6">
         {/* Objective Statement */}
         <div>
-          <h4 className="text-sm font-bold text-[#6B4423] mb-2">Objective</h4>
+          <h4 className="text-sm font-bold text-[#0F172A] mb-2">Objective</h4>
           <p className="text-slate-700 leading-relaxed">{objective.objective}</p>
         </div>
 
         {/* Cognitive Level */}
         {cognitiveInfo && (
           <div>
-            <h4 className="text-sm font-bold text-[#6B4423] mb-2">Cognitive Level</h4>
+            <h4 className="text-sm font-bold text-[#0F172A] mb-2">Cognitive Level</h4>
             <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${cognitiveInfo.color}`}>
               {cognitiveInfo.label}
             </div>
@@ -89,14 +89,14 @@ export const ObjectiveDetail: React.FC<ObjectiveDetailProps> = ({
         {/* Metadata */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs font-medium text-[#6B4423] mb-1">Created</p>
+            <p className="text-xs font-medium text-[#0F172A] mb-1">Created</p>
             <p className="text-slate-700 text-sm">
               {new Date(objective.created_at).toLocaleDateString()}
             </p>
           </div>
 
           <div>
-            <p className="text-xs font-medium text-[#6B4423] mb-1">Last Updated</p>
+            <p className="text-xs font-medium text-[#0F172A] mb-1">Last Updated</p>
             <p className="text-slate-700 text-sm">
               {new Date(objective.updated_at).toLocaleDateString()}
             </p>
@@ -112,10 +112,10 @@ export const ObjectiveDetail: React.FC<ObjectiveDetailProps> = ({
 
         {/* Actions */}
         {onAlignClick && (
-          <div className="pt-4 border-t border-[#D2B48C] space-y-2">
+          <div className="pt-4 border-t border-[#3B82F6] space-y-2">
             <button
               onClick={() => onAlignClick(objective.id)}
-              className="w-full px-4 py-2 bg-[#8B5A3C] text-white rounded-lg font-medium hover:bg-[#6B4423] transition"
+              className="w-full px-4 py-2 bg-[#1E40AF] text-white rounded-lg font-medium hover:bg-[#0F172A] transition"
             >
               Align Standards to This Objective
             </button>

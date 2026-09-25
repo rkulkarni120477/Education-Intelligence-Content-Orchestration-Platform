@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --brown-dark: #6B4423;
-  --brown-light: #8B5A3C;
-  --tan: #D2B48C;
-  --cream: #FFF8F0;
-  --tan-dark: #A0826D;
-  --brown-darker: #5A3A1F;
+  --brown-dark: #0F172A;
+  --brown-light: #1E40AF;
+  --tan: #3B82F6;
+  --cream: #FFFFFF;
+  --tan-dark: #2563EB;
+  --brown-darker: #1E3A8A;
 }
 
 * {

@@ -54,19 +54,19 @@ export const CandidatesList: React.FC<CandidatesListProps> = ({
               w-full p-4 rounded-lg border-2 transition text-left
               ${
                 isSelected
-                  ? 'border-[#8B5A3C] bg-[#FFF8F0]'
-                  : 'border-[#D2B48C] hover:border-[#8B5A3C] hover:bg-[#FFF8F0]'
+                  ? 'border-[#1E40AF] bg-[#FFFFFF]'
+                  : 'border-[#3B82F6] hover:border-[#1E40AF] hover:bg-[#FFFFFF]'
               }
             `}
           >
             {/* Rank */}
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
-                <div className="flex-shrink-0 w-6 h-6 bg-[#8B5A3C] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                <div className="flex-shrink-0 w-6 h-6 bg-[#1E40AF] text-white rounded-full flex items-center justify-center text-sm font-bold">
                   {index + 1}
                 </div>
                 <div>
-                  <p className="font-bold text-[#6B4423]">
+                  <p className="font-bold text-[#0F172A]">
                     {alignment.target_type === 'standard' ? 'Standard' : 'Objective'}
                   </p>
                   <p className="text-xs text-slate-500">

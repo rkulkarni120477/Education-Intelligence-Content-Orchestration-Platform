@@ -22,7 +22,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
 // Skeleton group for loading a card
 export const CardSkeleton: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
-  <div className="bg-white border-2 border-[#D2B48C] rounded-lg p-6 space-y-4">
+  <div className="bg-white border-2 border-[#3B82F6] rounded-lg p-6 space-y-4">
     <Skeleton className="h-6 w-1/2" />
     {Array.from({ length: lines }).map((_, i) => (
       <Skeleton key={i} className="h-4 w-full" />

@@ -78,7 +78,7 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-[#6B4423] mb-2">Select Content & Objectives</h2>
+        <h2 className="text-2xl font-bold text-[#0F172A] mb-2">Select Content & Objectives</h2>
         <p className="text-slate-600">
           Choose the content and learning objectives this {artifactType} will align to
         </p>
@@ -97,8 +97,8 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
                     onClick={() => setTab(t)}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       tab === t
-                        ? 'bg-[#8B5A3C] text-white'
-                        : 'bg-[#F0E6D8] text-[#6B4423] hover:bg-[#D2B48C]'
+                        ? 'bg-[#1E40AF] text-white'
+                        : 'bg-[#F0E6D8] text-[#0F172A] hover:bg-[#3B82F6]'
                     }`}
                   >
                     {tab === 'content' && 'Content'}
@@ -113,7 +113,7 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
                 placeholder={`Search ${tab}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               />
             </Card.Header>
 
@@ -130,17 +130,17 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
                 filteredItems.map((item) => (
                   <label
                     key={item.id}
-                    className="block p-3 border-2 border-[#E8DCC8] rounded-lg hover:bg-[#FFF8F0] cursor-pointer transition"
+                    className="block p-3 border-2 border-[#E8DCC8] rounded-lg hover:bg-[#FFFFFF] cursor-pointer transition"
                   >
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         checked={isSelected(item.id)}
                         onChange={() => handleToggleItem(item)}
-                        className="w-5 h-5 mt-1 accent-[#8B5A3C] cursor-pointer"
+                        className="w-5 h-5 mt-1 accent-[#1E40AF] cursor-pointer"
                       />
                       <div className="flex-1">
-                        <p className="font-medium text-[#6B4423]">{item.title}</p>
+                        <p className="font-medium text-[#0F172A]">{item.title}</p>
                         <p className="text-xs text-slate-600 mt-1">
                           {tab === 'content' && 'Content Item'}
                           {tab === 'objectives' && 'Learning Objective'}
@@ -159,7 +159,7 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
         <div>
           <Card variant="outlined" className="h-fit">
             <Card.Header>
-              <h3 className="text-lg font-bold text-[#6B4423]">Selected Items</h3>
+              <h3 className="text-lg font-bold text-[#0F172A]">Selected Items</h3>
               <p className="text-sm text-slate-600 mt-1">{selectedContent.length} selected</p>
             </Card.Header>
 
@@ -170,10 +170,10 @@ export const ContentSelector: React.FC<ContentSelectorProps> = ({
                 selectedContent.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3 bg-[#FFF8F0] border-l-4 border-[#8B5A3C] rounded flex items-start justify-between"
+                    className="p-3 bg-[#FFFFFF] border-l-4 border-[#1E40AF] rounded flex items-start justify-between"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-[#6B4423] text-sm">{item.title}</p>
+                      <p className="font-medium text-[#0F172A] text-sm">{item.title}</p>
                       <p className="text-xs text-slate-600 mt-1 capitalize">{item.type}</p>
                     </div>
                     <button

@@ -71,15 +71,15 @@ export default function StandardsExplorerPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-[#6B4423]">Standards Explorer</h1>
-        <p className="text-[#8B5A3C] mt-2">
+        <h1 className="text-4xl font-bold text-[#0F172A]">Standards Explorer</h1>
+        <p className="text-[#1E40AF] mt-2">
           Browse educational standards frameworks and create alignments with your content
         </p>
       </div>
 
       {/* Framework Selector */}
       <div>
-        <h2 className="text-lg font-bold text-[#6B4423] mb-3">Select Framework</h2>
+        <h2 className="text-lg font-bold text-[#0F172A] mb-3">Select Framework</h2>
         {frameworksQuery.isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -100,11 +100,11 @@ export default function StandardsExplorerPage() {
                 onClick={() => handleFrameworkSelect(framework.id)}
                 className={`p-4 rounded-lg border-2 transition text-left ${
                   selectedFrameworkId === framework.id
-                    ? 'border-[#8B5A3C] bg-[#FFF8F0]'
-                    : 'border-[#D2B48C] hover:border-[#8B5A3C]'
+                    ? 'border-[#1E40AF] bg-[#FFFFFF]'
+                    : 'border-[#3B82F6] hover:border-[#1E40AF]'
                 }`}
               >
-                <p className="font-bold text-[#6B4423]">{framework.name}</p>
+                <p className="font-bold text-[#0F172A]">{framework.name}</p>
                 <p className="text-xs text-slate-600 mt-1">{framework.authority}</p>
                 {framework.version && (
                   <p className="text-xs text-slate-500 mt-1">v{framework.version}</p>
@@ -122,13 +122,13 @@ export default function StandardsExplorerPage() {
           <div className="lg:col-span-1">
             <Card variant="default" className="h-full">
               <Card.Header>
-                <h3 className="text-lg font-bold text-[#6B4423]">Standards</h3>
+                <h3 className="text-lg font-bold text-[#0F172A]">Standards</h3>
                 <input
                   type="text"
                   placeholder="Search standards..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full mt-3 px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] text-sm"
+                  className="w-full mt-3 px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] text-sm"
                 />
               </Card.Header>
 

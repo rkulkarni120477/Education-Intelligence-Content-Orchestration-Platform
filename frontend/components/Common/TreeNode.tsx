@@ -35,7 +35,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
       <div
         className={`
           flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition
-          ${isSelected ? 'bg-[#8B5A3C] text-white' : 'hover:bg-[#FFF8F0]'}
+          ${isSelected ? 'bg-[#1E40AF] text-white' : 'hover:bg-[#FFFFFF]'}
         `}
         style={{ marginLeft: `${level * 1.5}rem` }}
         onClick={() => onSelect(item)}
@@ -47,7 +47,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
               e.stopPropagation()
               setIsExpanded(!isExpanded)
             }}
-            className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[#6B4423] hover:bg-[#D2B48C] rounded transition"
+            className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[#0F172A] hover:bg-[#3B82F6] rounded transition"
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
             {isExpanded ? '▼' : '▶'}

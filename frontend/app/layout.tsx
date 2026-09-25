@@ -17,12 +17,12 @@ export default function RootLayout({
       <head>
         <style>{`
           :root {
-            --brown-dark: #6B4423;
-            --brown-light: #8B5A3C;
-            --tan: #D2B48C;
-            --cream: #FFF8F0;
-            --tan-dark: #A0826D;
-            --brown-darker: #5A3A1F;
+            --blue-dark: #0F172A;
+            --blue-light: #1E40AF;
+            --blue-primary: #2563EB;
+            --blue-secondary: #3B82F6;
+            --white: #FFFFFF;
+            --gray-light: #F8FAFC;
           }
         `}</style>
       </head>

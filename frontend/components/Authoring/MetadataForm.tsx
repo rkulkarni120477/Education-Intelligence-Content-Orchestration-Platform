@@ -38,7 +38,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
     <div className="space-y-6">
       {/* Artifact Type Selection */}
       <div>
-        <h3 className="text-lg font-bold text-[#6B4423] mb-3">What are you creating?</h3>
+        <h3 className="text-lg font-bold text-[#0F172A] mb-3">What are you creating?</h3>
         <div className="grid grid-cols-3 gap-3">
           {(['lesson', 'activity', 'assessment'] as const).map((type) => (
             <button
@@ -46,11 +46,11 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
               onClick={() => onTypeSelect(type)}
               className={`p-4 rounded-lg border-2 transition ${
                 artifactType === type
-                  ? 'border-[#8B5A3C] bg-[#FFF8F0]'
-                  : 'border-[#D2B48C] hover:border-[#8B5A3C]'
+                  ? 'border-[#1E40AF] bg-[#FFFFFF]'
+                  : 'border-[#3B82F6] hover:border-[#1E40AF]'
               }`}
             >
-              <p className="font-bold text-[#6B4423] capitalize">{type}</p>
+              <p className="font-bold text-[#0F172A] capitalize">{type}</p>
               <p className="text-xs text-slate-600 mt-1">
                 {type === 'lesson' && 'Complete lesson plan'}
                 {type === 'activity' && 'Learning activity'}
@@ -65,13 +65,13 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
       {artifactType && (
         <Card variant="outlined">
           <Card.Header>
-            <h3 className="text-lg font-bold text-[#6B4423]">Basic Information</h3>
+            <h3 className="text-lg font-bold text-[#0F172A]">Basic Information</h3>
           </Card.Header>
 
           <Card.Body className="space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Title *
               </label>
               <input
@@ -79,33 +79,33 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
                 value={metadata.title}
                 onChange={(e) => onMetadataChange({ title: e.target.value })}
                 placeholder={`e.g., "Introduction to Fractions"`}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Description
               </label>
               <textarea
                 value={metadata.description}
                 onChange={(e) => onMetadataChange({ description: e.target.value })}
                 placeholder="Brief overview of what students will learn..."
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white h-24 resize-none"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white h-24 resize-none"
               />
             </div>
 
             {/* Grade and Subject */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#6B4423] mb-2">
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Grade *
                 </label>
                 <select
                   value={metadata.grade || ''}
                   onChange={(e) => onMetadataChange({ grade: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                  className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
                 >
                   <option value="">Select grade...</option>
                   {gradeOptions.map((g) => (
@@ -117,13 +117,13 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#6B4423] mb-2">
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Subject *
                 </label>
                 <select
                   value={metadata.subject || ''}
                   onChange={(e) => onMetadataChange({ subject: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                  className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
                 >
                   <option value="">Select subject...</option>
                   {subjectOptions.map((s) => (
@@ -138,7 +138,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
             {/* Duration (for lessons/activities) */}
             {artifactType !== 'assessment' && (
               <div>
-                <label className="block text-sm font-medium text-[#6B4423] mb-2">
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Duration (minutes)
                 </label>
                 <input
@@ -146,20 +146,20 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
                   value={metadata.duration || ''}
                   onChange={(e) => onMetadataChange({ duration: parseInt(e.target.value) })}
                   placeholder="45"
-                  className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                  className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
                 />
               </div>
             )}
 
             {/* Audience */}
             <div>
-              <label className="block text-sm font-medium text-[#6B4423] mb-2">
+              <label className="block text-sm font-medium text-[#0F172A] mb-2">
                 Intended Audience
               </label>
               <select
                 value={metadata.audience || ''}
                 onChange={(e) => onMetadataChange({ audience: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] bg-white"
+                className="w-full px-4 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-white"
               >
                 <option value="">Select audience...</option>
                 {audienceOptions.map((a) => (

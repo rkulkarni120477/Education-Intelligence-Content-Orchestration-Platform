@@ -99,7 +99,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-white">
       {/* Top Navigation */}
-      <nav className="bg-gradient-to-r from-[#6B4423] to-[#8B5A3C] text-white shadow-lg">
+      <nav className="bg-gradient-to-r from-[#0F172A] to-[#1E40AF] text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -117,7 +117,7 @@ export default function DashboardLayout({
             <span className="text-[#F5DEB3] text-sm">{userEmail}</span>
             <button
               onClick={handleLogout}
-              className="bg-[#D2B48C] text-[#6B4423] px-4 py-2 rounded-lg font-semibold hover:bg-white transition"
+              className="bg-[#3B82F6] text-[#0F172A] px-4 py-2 rounded-lg font-semibold hover:bg-white transition"
             >
               Logout
             </button>
@@ -125,7 +125,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Main Menu */}
-        <div className="bg-[#5A3A1F] border-t-2 border-[#8B5A3C]">
+        <div className="bg-[#1E3A8A] border-t-2 border-[#1E40AF]">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex overflow-x-auto space-x-1">
               {menuItems.map((item) => (
@@ -137,8 +137,8 @@ export default function DashboardLayout({
                   }}
                   className={`px-4 py-3 whitespace-nowrap font-medium transition ${
                     activeMenu === item.id
-                      ? 'bg-[#8B5A3C] text-white border-b-2 border-[#D2B48C]'
-                      : 'text-[#D2B48C] hover:bg-[#6B4423]'
+                      ? 'bg-[#1E40AF] text-white border-b-2 border-[#3B82F6]'
+                      : 'text-[#3B82F6] hover:bg-[#0F172A]'
                   }`}
                 >
                   <span className="mr-2">{item.icon}</span>
@@ -151,13 +151,13 @@ export default function DashboardLayout({
 
         {/* Submenu */}
         {openSubmenu && (
-          <div className="bg-[#8B5A3C] border-t border-[#A0826D]">
+          <div className="bg-[#1E40AF] border-t border-[#2563EB]">
             <div className="max-w-7xl mx-auto px-6 py-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {menuItems.find(m => m.id === openSubmenu)?.submenu.map((item) => (
                   <button
                     key={item}
-                    className="text-left px-3 py-2 text-[#F5DEB3] hover:bg-[#6B4423] rounded transition text-sm"
+                    className="text-left px-3 py-2 text-[#F5DEB3] hover:bg-[#0F172A] rounded transition text-sm"
                   >
                     • {item}
                   </button>

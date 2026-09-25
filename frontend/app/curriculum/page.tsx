@@ -105,15 +105,15 @@ export default function CurriculumNavigatorPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-[#6B4423]">Curriculum Navigator</h1>
-        <p className="text-[#8B5A3C] mt-2">
+        <h1 className="text-4xl font-bold text-[#0F172A]">Curriculum Navigator</h1>
+        <p className="text-[#1E40AF] mt-2">
           Explore your curriculum structure and align content to learning objectives
         </p>
       </div>
 
       {/* Curriculum Selector */}
       <div>
-        <h2 className="text-lg font-bold text-[#6B4423] mb-3">Select Curriculum</h2>
+        <h2 className="text-lg font-bold text-[#0F172A] mb-3">Select Curriculum</h2>
         {curriculaQuery.isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -134,11 +134,11 @@ export default function CurriculumNavigatorPage() {
                 onClick={() => handleCurriculumSelect(curriculum.id)}
                 className={`p-4 rounded-lg border-2 transition text-left ${
                   selectedCurriculumId === curriculum.id
-                    ? 'border-[#8B5A3C] bg-[#FFF8F0]'
-                    : 'border-[#D2B48C] hover:border-[#8B5A3C]'
+                    ? 'border-[#1E40AF] bg-[#FFFFFF]'
+                    : 'border-[#3B82F6] hover:border-[#1E40AF]'
                 }`}
               >
-                <p className="font-bold text-[#6B4423] truncate">{curriculum.name}</p>
+                <p className="font-bold text-[#0F172A] truncate">{curriculum.name}</p>
                 <div className="flex gap-1 mt-2 flex-wrap">
                   {curriculum.grade && (
                     <span className="text-xs px-2 py-1 bg-slate-200 rounded">
@@ -165,13 +165,13 @@ export default function CurriculumNavigatorPage() {
           <div className="lg:col-span-1">
             <Card variant="default" className="h-full">
               <Card.Header>
-                <h3 className="text-lg font-bold text-[#6B4423]">Structure</h3>
+                <h3 className="text-lg font-bold text-[#0F172A]">Structure</h3>
                 <input
                   type="text"
                   placeholder="Search units & objectives..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full mt-3 px-3 py-2 border-2 border-[#D2B48C] rounded-lg focus:outline-none focus:border-[#8B5A3C] text-sm"
+                  className="w-full mt-3 px-3 py-2 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] text-sm"
                 />
               </Card.Header>
 
@@ -214,11 +214,11 @@ export default function CurriculumNavigatorPage() {
       {/* Curriculum Stats */}
       {selectedCurriculumId && structureQuery.data && (
         <div>
-          <h3 className="text-lg font-bold text-[#6B4423] mb-3">Curriculum Statistics</h3>
+          <h3 className="text-lg font-bold text-[#0F172A] mb-3">Curriculum Statistics</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card variant="outlined">
               <Card.Body className="text-center">
-                <p className="text-3xl font-bold text-[#8B5A3C]">
+                <p className="text-3xl font-bold text-[#1E40AF]">
                   {structureQuery.data.units.length}
                 </p>
                 <p className="text-sm text-slate-600 mt-2">Units</p>
@@ -227,7 +227,7 @@ export default function CurriculumNavigatorPage() {
 
             <Card variant="outlined">
               <Card.Body className="text-center">
-                <p className="text-3xl font-bold text-[#8B5A3C]">
+                <p className="text-3xl font-bold text-[#1E40AF]">
                   {structureQuery.data.objectives.length}
                 </p>
                 <p className="text-sm text-slate-600 mt-2">Learning Objectives</p>
@@ -236,7 +236,7 @@ export default function CurriculumNavigatorPage() {
 
             <Card variant="outlined">
               <Card.Body className="text-center">
-                <p className="text-3xl font-bold text-[#8B5A3C]">
+                <p className="text-3xl font-bold text-[#1E40AF]">
                   {structureQuery.data.objectives.filter(o => o.cognitive_level).length}
                 </p>
                 <p className="text-sm text-slate-600 mt-2">With Cognitive Levels</p>
@@ -245,7 +245,7 @@ export default function CurriculumNavigatorPage() {
 
             <Card variant="outlined">
               <Card.Body className="text-center">
-                <p className="text-3xl font-bold text-[#8B5A3C]">
+                <p className="text-3xl font-bold text-[#1E40AF]">
                   {new Date(selectedCurriculum?.created_at || '').toLocaleDateString()}
                 </p>
                 <p className="text-sm text-slate-600 mt-2">Created</p>

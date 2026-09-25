@@ -328,7 +328,7 @@ You've completed this lesson. Great work on your learning journey!`,
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF8F0] to-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFFFFF] to-white">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Progress Steps */}
         <div className="mb-8">
@@ -338,16 +338,16 @@ You've completed this lesson. Great work on your learning journey!`,
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
                     currentStep === step
-                      ? 'bg-[#8B5A3C] text-white'
+                      ? 'bg-[#1E40AF] text-white'
                       : idx < Object.keys(stepNumbers).indexOf(currentStep)
                         ? 'bg-green-500 text-white'
-                        : 'bg-[#D2B48C] text-[#6B4423]'
+                        : 'bg-[#3B82F6] text-[#0F172A]'
                   }`}
                 >
                   {stepNumbers[step]}
                 </div>
                 <div className="ml-2">
-                  <p className="text-sm font-bold text-[#6B4423]">{stepTitles[step]}</p>
+                  <p className="text-sm font-bold text-[#0F172A]">{stepTitles[step]}</p>
                 </div>
 
                 {idx < 3 && (
@@ -355,7 +355,7 @@ You've completed this lesson. Great work on your learning journey!`,
                     className={`w-12 h-0.5 mx-4 ${
                       idx < Object.keys(stepNumbers).indexOf(currentStep)
                         ? 'bg-green-500'
-                        : 'bg-[#D2B48C]'
+                        : 'bg-[#3B82F6]'
                     }`}
                   ></div>
                 )}
@@ -395,13 +395,13 @@ You've completed this lesson. Great work on your learning journey!`,
               <Card variant="outlined" className="w-full max-w-md">
                 <Card.Body className="text-center space-y-4">
                   <div className="text-5xl">🔨</div>
-                  <p className="font-bold text-[#6B4423]">Generating Your {state.artifactType}</p>
+                  <p className="font-bold text-[#0F172A]">Generating Your {state.artifactType}</p>
                   <p className="text-slate-600">
                     AI is creating a personalized draft based on your selections...
                   </p>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div
-                      className="bg-[#8B5A3C] h-2 rounded-full transition-all"
+                      className="bg-[#1E40AF] h-2 rounded-full transition-all"
                       style={{ width: `${generationProgress}%` }}
                     ></div>
                   </div>
