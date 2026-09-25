@@ -11,6 +11,7 @@ from auth.tenant_context import get_current_tenant_id
 from services.alignment_service import AlignmentService
 from api.standards import router as standards_router
 from api.workforce_alignment import router as workforce_alignment_router
+from api.skill_mapping import router as skill_mapping_router
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -24,6 +25,9 @@ router.include_router(standards_router)
 
 # Include workforce alignment workflow routes
 router.include_router(workforce_alignment_router)
+
+# Include skill mapping and recommendations routes (Phase 4)
+router.include_router(skill_mapping_router)
 
 # Courses router disabled: dependency models removed as dead code
 # router.include_router(courses_router)

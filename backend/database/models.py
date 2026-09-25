@@ -883,6 +883,174 @@ class RequirementEdit(Base):
     profile = relationship("RequirementsProfile", back_populates="edits")
 
 
+# ==================== PHASE 4: SKILL MAPPINGS & RECOMMENDATIONS ====================
+
+class SkillAlignment(Base):
+    """Alignment between a workforce skill and course content"""
+    __tablename__ = "skill_alignments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    workflow_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False, index=True)
+
+    # Skill and content references
+    skill_id = Column(String(36), ForeignKey("workforce_skills.id"), nullable=False)
+    skill_name = Column(String(255), nullable=False)
+    content_id = Column(String(255), nullable=False)  # Module/lesson ID from course
+    content_title = Column(String(255), nullable=False)
+
+    # Alignment details
+    alignment_type = Column(String(50), nullable=False)  # introduces, reinforces, assesses, covers
+    proficiency_level = Column(String(50), nullable=False)  # beginner, intermediate, advanced, expert
+    confidence = Column(Float, default=0.5)  # 0-1 confidence score
+
+    # Evidence and references
+    evidence = Column(JSON, default=[])  # [{ quote, reference }, ...]
+    supporting_objectives = Column(JSON, default=[])  # Learning objective references
+
+    # Status tracking
+    status = Column(String(50), default="candidate")  # candidate, approved, rejected
+    reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    review_notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('tenant_id', 'workflow_id', 'skill_id', 'content_id', name='uq_alignment'),)
+
+
+class GapAnalysis(Base):
+    """Analysis of gaps in skill coverage"""
+    __tablename__ = "gap_analyses"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    workflow_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False, index=True)
+
+    # Skill and coverage info
+    skill_id = Column(String(36), ForeignKey("workforce_skills.id"), nullable=False)
+    skill_name = Column(String(255), nullable=False)
+    required_proficiency = Column(String(50), nullable=False)
+
+    # Gap metrics
+    current_coverage = Column(Float, default=0.0)  # 0-1 coverage percentage
+    gap_severity = Column(String(50), nullable=False)  # critical, high, medium, low
+    gap_description = Column(Text, nullable=False)
+
+    # Recommendations to address gap
+    recommendations = Column(JSON, default=[])  # [{title, description}, ...]
+
+    # Review status
+    status = Column(String(50), default="identified")  # identified, reviewed, addressed
+    reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Recommendation(Base):
+    """Curriculum improvement recommendation"""
+    __tablename__ = "recommendations"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    workflow_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False, index=True)
+
+    # Recommendation details
+    type = Column(String(50), nullable=False)  # add_content, reorder, enhance_assessment, etc.
+    priority = Column(String(50), nullable=False)  # critical, high, medium, low
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    rationale = Column(Text, nullable=False)
+
+    # Implementation guidance
+    implementation_steps = Column(JSON, default=[])  # Step-by-step instructions
+    affected_skills = Column(JSON, default=[])  # Skill IDs this addresses
+    estimated_effort = Column(String(50), nullable=False)  # small, medium, large
+    expected_impact = Column(Text)  # Description of expected improvement
+
+    # Status tracking
+    status = Column(String(50), default="proposed")  # proposed, approved, rejected, implemented
+    approved_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    approval_notes = Column(Text, nullable=True)
+
+    # Implementation tracking
+    implementation_notes = Column(Text, nullable=True)
+    implemented_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CoverageReport(Base):
+    """Overall skill coverage report for a workflow"""
+    __tablename__ = "coverage_reports"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    workflow_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False, index=True)
+
+    # Coverage metrics
+    total_skills = Column(Integer, default=0)
+    total_content_items = Column(Integer, default=0)
+    total_alignments = Column(Integer, default=0)
+
+    # Coverage breakdown
+    covered_skills = Column(JSON, default=[])  # >= 80% coverage
+    partially_covered_skills = Column(JSON, default=[])  # 10-80% coverage
+    uncovered_skills = Column(JSON, default=[])  # < 10% coverage
+
+    # Coverage by skill
+    coverage_by_skill = Column(JSON, default={})  # {skill_id: percentage}
+    overall_coverage = Column(Float, default=0.0)  # 0-1 weighted average
+
+    # Confidence metrics
+    alignment_confidence = Column(Float, default=0.0)  # Average confidence
+
+    # Status
+    status = Column(String(50), default="generated")  # generated, reviewed, approved
+    reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AccessibilityAudit(Base):
+    """Accessibility audit and remediation tracking"""
+    __tablename__ = "accessibility_audits"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    workflow_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False, index=True)
+
+    # Audit scope
+    scope = Column(String(100), default="wcag-2.1-aa")  # WCAG compliance level
+
+    # Findings
+    total_findings = Column(Integer, default=0)
+    critical_issues = Column(Integer, default=0)
+    high_issues = Column(Integer, default=0)
+    medium_issues = Column(Integer, default=0)
+    low_issues = Column(Integer, default=0)
+
+    # Details
+    findings = Column(JSON, default=[])  # [{type, severity, description, remediation}, ...]
+    remediation_steps = Column(JSON, default=[])  # [{step, description, responsible}, ...]
+
+    # Status
+    status = Column(String(50), default="completed")  # in_progress, completed
+    remediation_complete = Column(Boolean, default=False)
+    remediation_verified_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    remediation_verified_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # Extended WorkflowExecution for checkpoint support
 # (Extend existing WorkflowExecution model with new fields)
 # The following columns should be added to WorkflowExecution via migration:
