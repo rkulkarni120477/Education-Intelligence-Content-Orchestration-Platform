@@ -1,22 +1,21 @@
 """
-Data Access API Routes - Content Library, Standards, Curriculum, and Alignment
-Fixes for displaying existing data with proper tenant isolation
+Data Access API Routes - Content, Curriculum, and Alignment
+Provides database-backed endpoints with proper tenant isolation.
+Standards endpoints are handled by api/standards.py router.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from database.db import get_db
 from database.models import (
-    Content, ContentChunk, StandardFramework, Standard,
-    Curriculum, CurriculumUnit, Alignment, CurriculumWorkflow
+    Content, ContentChunk, Curriculum, CurriculumUnit, Alignment
 )
 from auth.tenant_context import get_current_tenant_id
 import logging
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/data", tags=["data-access"])
+router = APIRouter(prefix="/api/v1", tags=["data-access"])
 
 
 # ===== CONTENT LIBRARY ENDPOINTS =====
@@ -29,9 +28,7 @@ async def list_content(
     subject: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """
-    List all content from the content library with proper tenant filtering.
-    """
+    """List all content from database with proper tenant filtering."""
     try:
         tenant_id = get_current_tenant_id()
 
@@ -59,7 +56,6 @@ async def list_content(
                     "grade": c.grade_level,
                     "status": c.status,
                     "created_at": c.created_at.isoformat() if c.created_at else None,
-                    "updated_at": c.updated_at.isoformat() if c.updated_at else None,
                 }
                 for c in content_items
             ],
@@ -79,7 +75,7 @@ async def get_content_detail(
     content_id: str,
     db: Session = Depends(get_db),
 ):
-    """Get detailed content information including chunks."""
+    """Get detailed content information."""
     try:
         tenant_id = get_current_tenant_id()
 
@@ -94,11 +90,6 @@ async def get_content_detail(
                 detail="Content not found"
             )
 
-        chunks = db.query(ContentChunk).filter(
-            ContentChunk.content_id == content_id,
-            ContentChunk.tenant_id == tenant_id
-        ).all()
-
         return {
             "status": "success",
             "content": {
@@ -109,17 +100,7 @@ async def get_content_detail(
                 "subject": content.subject,
                 "grade": content.grade_level,
                 "status": content.status,
-                "source_url": content.source_url,
                 "created_at": content.created_at.isoformat() if content.created_at else None,
-                "chunks": [
-                    {
-                        "id": ch.id,
-                        "title": ch.title,
-                        "text": ch.text,
-                        "position": ch.position,
-                    }
-                    for ch in chunks
-                ]
             }
         }
     except HTTPException:
@@ -132,103 +113,13 @@ async def get_content_detail(
         )
 
 
-# ===== STANDARDS ENDPOINTS =====
-
-@router.get("/standards")
-async def list_standards(
-    skip: int = 0,
-    limit: int = 50,
-    framework_id: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    """List all standards with proper tenant filtering."""
-    try:
-        tenant_id = get_current_tenant_id()
-
-        query = db.query(Standard).filter(Standard.tenant_id == tenant_id)
-
-        if framework_id:
-            query = query.filter(Standard.framework_id == framework_id)
-
-        total = query.count()
-        standards = query.order_by(Standard.code).offset(skip).limit(limit).all()
-
-        return {
-            "status": "success",
-            "total": total,
-            "items": [
-                {
-                    "id": s.id,
-                    "code": s.code,
-                    "title": s.title,
-                    "description": s.description,
-                    "framework_id": s.framework_id,
-                    "level": s.level,
-                    "created_at": s.created_at.isoformat() if s.created_at else None,
-                }
-                for s in standards
-            ],
-            "skip": skip,
-            "limit": limit,
-        }
-    except Exception as e:
-        logger.error(f"Error listing standards: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
-@router.get("/standards/frameworks")
-async def list_frameworks(
-    skip: int = 0,
-    limit: int = 50,
-    db: Session = Depends(get_db),
-):
-    """List all standard frameworks."""
-    try:
-        tenant_id = get_current_tenant_id()
-
-        query = db.query(StandardFramework).filter(
-            StandardFramework.tenant_id == tenant_id
-        )
-
-        total = query.count()
-        frameworks = query.order_by(StandardFramework.name).offset(skip).limit(limit).all()
-
-        return {
-            "status": "success",
-            "total": total,
-            "items": [
-                {
-                    "id": f.id,
-                    "name": f.name,
-                    "code": f.code,
-                    "description": f.description,
-                    "source": f.source,
-                    "version": f.version,
-                    "created_at": f.created_at.isoformat() if f.created_at else None,
-                }
-                for f in frameworks
-            ],
-            "skip": skip,
-            "limit": limit,
-        }
-    except Exception as e:
-        logger.error(f"Error listing frameworks: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
 # ===== CURRICULUM ENDPOINTS =====
 
 @router.get("/curriculum")
 async def list_curriculum(
     skip: int = 0,
     limit: int = 50,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """List all curriculum with proper tenant filtering."""
@@ -237,8 +128,8 @@ async def list_curriculum(
 
         query = db.query(Curriculum).filter(Curriculum.tenant_id == tenant_id)
 
-        if status:
-            query = query.filter(Curriculum.status == status)
+        if status_filter:
+            query = query.filter(Curriculum.status == status_filter)
 
         total = query.count()
         curriculum = query.order_by(Curriculum.created_at.desc()).offset(skip).limit(limit).all()
@@ -330,26 +221,25 @@ async def get_curriculum_detail(
 
 # ===== ALIGNMENT ENDPOINTS (FIXED) =====
 
-@router.get("/alignments")
-async def list_alignments(
+@router.get("/alignments-list")
+async def list_all_alignments(
     skip: int = 0,
     limit: int = 50,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     source_type: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """
-    List all alignments with proper tenant filtering.
-    FIXED: Shows all statuses by default, not just 'candidate'
+    List all alignments from database with proper tenant filtering.
+    Shows all statuses by default (no automatic filtering).
     """
     try:
         tenant_id = get_current_tenant_id()
 
         query = db.query(Alignment).filter(Alignment.tenant_id == tenant_id)
 
-        # Only filter by status if explicitly provided
-        if status:
-            query = query.filter(Alignment.status == status)
+        if status_filter:
+            query = query.filter(Alignment.status == status_filter)
 
         if source_type:
             query = query.filter(Alignment.source_type == source_type)
@@ -373,7 +263,6 @@ async def list_alignments(
                     "evidence": a.evidence or [],
                     "status": a.status,
                     "created_at": a.created_at.isoformat() if a.created_at else None,
-                    "reviewed_at": a.reviewed_at.isoformat() if a.reviewed_at else None,
                 }
                 for a in alignments
             ],
@@ -382,53 +271,6 @@ async def list_alignments(
         }
     except Exception as e:
         logger.error(f"Error listing alignments: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
-@router.get("/alignments/{alignment_id}")
-async def get_alignment(
-    alignment_id: str,
-    db: Session = Depends(get_db),
-):
-    """Get alignment details."""
-    try:
-        tenant_id = get_current_tenant_id()
-
-        alignment = db.query(Alignment).filter(
-            Alignment.id == alignment_id,
-            Alignment.tenant_id == tenant_id
-        ).first()
-
-        if not alignment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Alignment not found"
-            )
-
-        return {
-            "status": "success",
-            "alignment": {
-                "id": alignment.id,
-                "source_type": alignment.source_type,
-                "source_id": alignment.source_id,
-                "target_type": alignment.target_type,
-                "standard_id": alignment.standard_id,
-                "objective_id": alignment.objective_id,
-                "score": float(alignment.score) if alignment.score else 0.0,
-                "confidence": float(alignment.confidence) if alignment.confidence else 0.0,
-                "evidence": alignment.evidence or [],
-                "status": alignment.status,
-                "created_at": alignment.created_at.isoformat() if alignment.created_at else None,
-                "reviewed_at": alignment.reviewed_at.isoformat() if alignment.reviewed_at else None,
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting alignment: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)

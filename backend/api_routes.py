@@ -831,46 +831,9 @@ async def get_coverage_analytics(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/v1/content", response_model=Dict[str, Any])
-async def get_content(
-    page: int = 1,
-    limit: int = 5,
-    status: Optional[str] = None,
-    x_tenant_id: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
-):
-    """Get content library items"""
-    try:
-        content_items = [
-            {
-                "id": "content_1",
-                "title": "Introduction to Fractions",
-                "type": "lesson",
-                "subject": "Mathematics",
-                "grade": "4",
-                "status": "published",
-                "created_at": datetime.now().isoformat(),
-            },
-            {
-                "id": "content_2",
-                "title": "Water Cycle Learning Module",
-                "type": "module",
-                "subject": "Science",
-                "grade": "5",
-                "status": "published",
-                "created_at": datetime.now().isoformat(),
-            },
-        ]
-        return {
-            "status": "success",
-            "content": content_items,
-            "total": 2,
-            "page": page,
-            "limit": limit,
-        }
-    except Exception as e:
-        logger.error(f"Error getting content: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# REMOVED: This endpoint is now handled by data_access.py router
+# The hardcoded mock data has been replaced with real database queries
+# See: backend/api/data_access.py for the actual implementation
 
 
 @router.get("/v1/content/jobs", response_model=Dict[str, Any])
