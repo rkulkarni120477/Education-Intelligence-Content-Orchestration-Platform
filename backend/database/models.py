@@ -711,3 +711,192 @@ class Review(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     reviewer = relationship("User")
+
+
+# ==================== WORKFORCE ALIGNMENT WORKFLOW ====================
+
+class SkillFramework(Base):
+    """Workforce skill framework (e.g., O*NET, ACE, LinkedIn)"""
+    __tablename__ = "skill_frameworks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)  # e.g., "O*NET Skills", "ACE Competencies"
+    authority = Column(String(255))  # e.g., "U.S. Bureau of Labor Statistics"
+    jurisdiction = Column(String(255))  # e.g., "United States"
+    version = Column(String(50), nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('tenant_id', 'name', 'version', name='uq_skill_framework'),)
+
+    skills = relationship("WorkforceSkill", back_populates="framework", cascade="all, delete-orphan")
+
+
+class WorkforceSkill(Base):
+    """A skill in a workforce skill framework"""
+    __tablename__ = "workforce_skills"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    framework_id = Column(String(36), ForeignKey("skill_frameworks.id"), nullable=False)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text)
+    category = Column(String(100))  # e.g., "Technical", "Soft Skills", "Domain"
+    version = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('tenant_id', 'framework_id', 'name', name='uq_workforce_skill'),)
+
+    framework = relationship("SkillFramework", back_populates="skills")
+    role_requirements = relationship("RoleSkillRequirement", back_populates="skill")
+    proficiency_rubric = relationship("SkillProficiencyRubric", back_populates="skill", uselist=False)
+
+
+class SkillProficiencyRubric(Base):
+    """Defines proficiency levels for a workforce skill"""
+    __tablename__ = "skill_proficiency_rubrics"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    skill_id = Column(String(36), ForeignKey("workforce_skills.id"), nullable=False, unique=True)
+    version = Column(String(50), default="1.0")
+
+    # Proficiency level definitions (JSON)
+    beginner = Column(Text)  # e.g., "Can perform basic tasks with guidance"
+    intermediate = Column(Text)  # e.g., "Can perform tasks independently"
+    advanced = Column(Text)  # e.g., "Can mentor others; solve complex problems"
+    expert = Column(Text)  # e.g., "Recognized authority; drives innovation"
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    skill = relationship("WorkforceSkill", back_populates="proficiency_rubric")
+
+
+class WorkforceRole(Base):
+    """A workforce role/job family requiring specific skills"""
+    __tablename__ = "workforce_roles"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text)
+    job_family = Column(String(255))  # e.g., "Software Engineering", "Nursing", "Finance"
+    education_level = Column(String(100))  # e.g., "Bachelor's", "Master's", "HS Diploma"
+    experience_years = Column(Integer)  # Typical years of experience required
+    authority = Column(String(255))  # e.g., "BLS O*NET", "LinkedIn", "Institution"
+    version = Column(String(50), default="1.0")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('tenant_id', 'name', name='uq_workforce_role'),)
+
+    skill_requirements = relationship("RoleSkillRequirement", back_populates="role")
+
+
+class RoleSkillRequirement(Base):
+    """Maps a workforce role to required skills"""
+    __tablename__ = "role_skill_requirements"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    role_id = Column(String(36), ForeignKey("workforce_roles.id"), nullable=False)
+    skill_id = Column(String(36), ForeignKey("workforce_skills.id"), nullable=False)
+
+    required_proficiency = Column(String(50))  # beginner, intermediate, advanced, expert
+    priority = Column(String(50), default="high")  # critical, high, medium, low
+    evidence_type = Column(String(100))  # e.g., "job_posting", "competency_framework", "survey"
+    notes = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('tenant_id', 'role_id', 'skill_id', name='uq_role_skill_req'),)
+
+    role = relationship("WorkforceRole", back_populates="skill_requirements")
+    skill = relationship("WorkforceSkill", back_populates="role_requirements")
+
+
+class RequirementsProfile(Base):
+    """Structured profile of institution requirements for a workforce alignment"""
+    __tablename__ = "requirements_profiles"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    request_id = Column(String(36), index=True)  # Reference to workflow request
+
+    program_id = Column(String(255))  # Institution program identifier
+    program_name = Column(String(255), nullable=False)
+
+    # Requirements scope
+    target_role_ids = Column(JSON, default=[])  # [role_id, ...]
+    required_skill_ids = Column(JSON, default=[])  # [skill_id, ...]
+    course_ids = Column(JSON, default=[])  # [curriculum_id, ...]
+
+    # Constraints
+    delivery_format = Column(String(100))  # online, hybrid, in-person
+    duration_weeks = Column(Integer)
+    credits = Column(Integer)
+    prerequisites = Column(Text)
+
+    # Guidelines
+    accessibility_guidelines = Column(Text)  # WCAG level, specific requirements
+    style_guide_id = Column(String(36))  # Reference to style guide
+
+    # Source references
+    source_documents = Column(JSON, default=[])  # [{ url, description }, ...]
+
+    # Status & versions
+    status = Column(String(50), default="draft")  # draft, confirmed, archived
+    version = Column(Integer, default=1)
+
+    created_by = Column(String(36), ForeignKey("users.id"))
+    confirmed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    edits = relationship("RequirementEdit", back_populates="profile", cascade="all, delete-orphan")
+
+
+class RequirementEdit(Base):
+    """Audit trail for edits to a requirements profile"""
+    __tablename__ = "requirement_edits"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    profile_id = Column(String(36), ForeignKey("requirements_profiles.id"), nullable=False)
+
+    field_name = Column(String(255), nullable=False)
+    old_value = Column(Text)
+    new_value = Column(Text)
+
+    edited_by = Column(String(36), ForeignKey("users.id"))
+    reason = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    profile = relationship("RequirementsProfile", back_populates="edits")
+
+
+# Extended WorkflowExecution for checkpoint support
+# (Extend existing WorkflowExecution model with new fields)
+# The following columns should be added to WorkflowExecution via migration:
+# - graph_version: String(50)
+# - checkpoint_state: JSON (serialized LangGraph state)
+# - last_node_executed: String(255)
+# - next_node: String(255)
+# - interrupted_at: DateTime
+# - interrupt_reason: Text
+# - human_decision_pending: Boolean
+# - pending_decision_type: String(100)
+# - human_decision: JSON
+# - decided_by: String(36) ForeignKey("users.id")
+# - decided_at: DateTime
+# - decision_notes: Text
+# - retry_count: Integer
+# - max_retries: Integer

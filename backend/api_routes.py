@@ -10,6 +10,7 @@ from auth.tenant_context import get_current_tenant_id
 # from api.courses import router as courses_router  # DISABLED: Models Course/Unit not defined in database.models
 from services.alignment_service import AlignmentService
 from api.standards import router as standards_router
+from api.workforce_alignment import router as workforce_alignment_router
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 # Include standards routes
 router.include_router(standards_router)
+
+# Include workforce alignment workflow routes
+router.include_router(workforce_alignment_router)
 
 # Courses router disabled: dependency models removed as dead code
 # router.include_router(courses_router)
