@@ -1,7 +1,7 @@
 # Backend Implementation Guide
 
 ## Overview
-Complete backend implementation for the Academian Education Platform with authentication, user management, email service, and database integration.
+Complete backend implementation for the Education Intelligence & Content Orchestration Platform with authentication, user management, email service, and database integration.
 
 ---
 

@@ -36,7 +36,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Multi-Agent AI Platform for Educational Content Creation"
+    description="Platform for intelligent educational content management, curriculum alignment, and content orchestration"
 )
 
 # CORS middleware (must be added FIRST before any other middleware)

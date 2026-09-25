@@ -1,4 +1,4 @@
-# Design Guidelines - Academian Education Platform
+# Design Guidelines - Education Intelligence & Content Orchestration Platform
 
 ## Visual Identity
 

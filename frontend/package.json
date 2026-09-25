@@ -1,7 +1,7 @@
 {
-  "name": "academian-education-platform-frontend",
+  "name": "education-intelligence-orchestration-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Academian Education Platform",
+  "description": "Frontend for Education Intelligence & Content Orchestration Platform",
   "private": true,
   "scripts": {
     "dev": "next dev",
