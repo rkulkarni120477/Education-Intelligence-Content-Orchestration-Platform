@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from database.vector_db import get_vector_store
 from database.db import get_db
 from database.models import Alignment, User
+from auth.tenant_context import get_current_tenant_id
 # from api.courses import router as courses_router  # DISABLED: Models Course/Unit not defined in database.models
 from services.alignment_service import AlignmentService
 from api.standards import router as standards_router
@@ -259,7 +260,7 @@ async def upload_documents(collection_name: str, file: UploadFile = File(...)):
 async def list_alignments(
     source_type: Optional[str] = None,
     source_id: Optional[str] = None,
-    status_filter: Optional[str] = None,
+    status: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     x_tenant_id: Optional[str] = Header(None),
@@ -269,16 +270,21 @@ async def list_alignments(
     try:
         if source_id and source_type:
             alignments = AlignmentService.get_alignments_for_source(
-                db, source_type, source_id, status_filter
+                db, source_type, source_id, status
             )
         elif source_id:
             alignments = AlignmentService.get_alignments_for_standard(
-                db, source_id, status_filter
+                db, source_id, status
             )
         else:
-            alignments, total = AlignmentService.list_candidate_alignments(
-                db, skip, limit
+            # Get all alignments with optional status filter
+            # Default to candidate status if not specified
+            status_filter = status or "candidate"
+            query = db.query(Alignment).filter(
+                Alignment.tenant_id == get_current_tenant_id(),
+                Alignment.status == status_filter
             )
+            alignments = query.order_by(Alignment.confidence.desc()).offset(skip).limit(limit).all()
 
         return {
             "status": "success",
