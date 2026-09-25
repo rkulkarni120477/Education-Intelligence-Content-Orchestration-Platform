@@ -94,7 +94,7 @@ class ChromaVectorStore:
         Returns:
             Dict with ids, distances, metadatas, and documents
         """
-        query_embedding = embedding_model.encode([query])
+        query_embedding = self.get_embedding_model().encode([query])
 
         results = self.collection.query(
             query_embeddings=query_embedding.tolist(),

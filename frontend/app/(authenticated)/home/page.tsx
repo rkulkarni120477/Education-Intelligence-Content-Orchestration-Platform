@@ -51,7 +51,7 @@ export default function HomePage() {
               🎯 Review Alignments
             </Button>
           </Link>
-          <Link href="/authoring/lesson">
+          <Link href="/authoring">
             <Button variant="primary" className="w-full h-full py-6">
               ✏️ Create Lesson
             </Button>

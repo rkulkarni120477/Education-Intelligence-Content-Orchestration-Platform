@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from database.vector_db import get_vector_store
 from database.db import get_db
 from database.models import Alignment, User
-from api.courses import router as courses_router
+# from api.courses import router as courses_router  # DISABLED: Models Course/Unit not defined in database.models
 from services.alignment_service import AlignmentService
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -16,8 +16,8 @@ import uuid
 router = APIRouter(prefix="/api", tags=["api"])
 logger = logging.getLogger(__name__)
 
-# Include courses router for Course/Unit/Lesson management
-router.include_router(courses_router)
+# Courses router disabled: dependency models removed as dead code
+# router.include_router(courses_router)
 
 
 class DocumentRequest(BaseModel):

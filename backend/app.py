@@ -23,16 +23,6 @@ from database.models import User, Project, Workflow, Content, Skill, WorkflowExe
 # from database.content_models import Course, Unit, Lesson  # Commented to avoid model conflicts
 from services.email_service import get_email_service
 from middleware.tenant_middleware import TenantMiddleware
-
-# Agent infrastructure
-from agents.base_agent import AgentFactory
-from agents.intake_agent import IntakeAgent
-from agents.standards_agent import StandardsAgent
-from agents.curriculum_agent import CurriculumAgent
-from agents.alignment_agent import AlignmentAgent
-from agents.lesson_agent import LessonAgent
-from agents.assessment_agent import AssessmentAgent
-
 from api_routes import router as api_router
 
 # Setup logging
@@ -61,16 +51,6 @@ app.add_middleware(
 # Tenant middleware for multi-tenancy
 app.add_middleware(TenantMiddleware)
 
-# Register agents with factory
-AgentFactory.register("intake", IntakeAgent)
-AgentFactory.register("standards", StandardsAgent)
-AgentFactory.register("curriculum", CurriculumAgent)
-AgentFactory.register("alignment", AlignmentAgent)
-AgentFactory.register("lesson", LessonAgent)
-AgentFactory.register("assessment", AssessmentAgent)
-
-logger.info("[OK] Agents registered: %s", ", ".join(AgentFactory.list_agents()))
-
 # Include API routes
 app.include_router(api_router)
 
@@ -87,87 +67,20 @@ async def _run_project_workflow(
     target_roles: List[str],
     understanding: Dict[str, Any]
 ):
-    """Execute the agent pipeline after the monitor has been opened."""
+    """Execute the agent pipeline after the monitor has been opened.
+
+    DISABLED: Agent infrastructure (RequirementUnderstandingAgent, OrchestratorAgent)
+    has been removed as dead code. This endpoint is no longer functional.
+    """
     workflow_db = SessionLocal()
     try:
-        project_workflow_executions[workflow_id]["status"] = "running"
-        project_workflow_executions[workflow_id]["current_stage"] = "requirements"
-        project_workflow_executions[workflow_id]["progress_percentage"] = 5
-
-        requirement_agent = RequirementUnderstandingAgent(workflow_db)
-        requirement_result = await requirement_agent.analyze_curriculum(
-            imscc_files=files,
-            target_roles=target_roles,
-            course_design_data={},
-            style_guide={}
-        )
-        requirement_analysis = requirement_result.dict()
-        project_workflow_executions[workflow_id]["progress_percentage"] = 15
-        project_workflow_executions[workflow_id]["agent_outputs"]["requirement_understanding"] = requirement_analysis
-
-        orchestrator = OrchestratorAgent(workflow_db)
-        workflow_execution = await orchestrator.execute_curriculum_workflow(
-            project_id=project_id,
-            requirement_analysis=requirement_analysis,
-            imscc_files=files,
-            target_roles=target_roles,
-            use_case=action,
-            workflow_id=workflow_id
-        )
-
-        understanding["outputs"] = [
-            "Updated course materials",
-            "Workforce skills alignment and gap report",
-            "Accessibility compliance report"
-        ]
-        understanding["agents"] = [
-            "Requirement Understanding Agent",
-            "Orchestrator Agent",
-            "Knowledge Intelligence Agent",
-            "Workforce Skills Agent",
-            "Content AI Studio Agent",
-            "Accessibility Agent"
-        ]
-        project_workflow_understanding[workflow_id] = understanding
+        project_workflow_executions[workflow_id]["status"] = "failed"
+        project_workflow_executions[workflow_id]["current_stage"] = "failed"
         project_workflow_executions[workflow_id].update({
-            "status": workflow_execution.status,
-            "current_stage": workflow_execution.current_stage,
-            "progress_percentage": workflow_execution.progress_percentage,
-            "checkpoints": [checkpoint.dict() for checkpoint in workflow_execution.checkpoints],
-            "agent_outputs": workflow_execution.agent_outputs,
-            "understanding": understanding
+            "errors": ["Workflow execution disabled: Agent infrastructure has been removed. This endpoint is not implemented."]
         })
-
-        # Save to database
-        from database.models import WorkflowExecution as DBWorkflowExecution
-        db_execution = workflow_db.query(DBWorkflowExecution).filter(
-            DBWorkflowExecution.id == workflow_id
-        ).first()
-
-        if db_execution:
-            db_execution.status = workflow_execution.status
-            db_execution.output_data = workflow_execution.agent_outputs
-            db_execution.completed_at = workflow_execution.end_time
-        else:
-            db_execution = DBWorkflowExecution(
-                id=workflow_id,
-                workflow_id=workflow_id,
-                status=workflow_execution.status,
-                output_data=workflow_execution.agent_outputs,
-                started_at=workflow_execution.start_time,
-                completed_at=workflow_execution.end_time
-            )
-            workflow_db.add(db_execution)
-
-        workflow_db.commit()
     except Exception as error:
-        workflow_db.rollback()
-        logger.exception("Error executing workflow %s", workflow_id)
-        project_workflow_executions[workflow_id].update({
-            "status": "failed",
-            "current_stage": "failed",
-            "errors": [str(error)]
-        })
+        logger.exception("Error in disabled workflow %s", workflow_id)
     finally:
         workflow_db.close()
 
@@ -1589,33 +1502,6 @@ async def list_skills(category: Optional[str] = None, db: Session = Depends(get_
             }
             for s in skills
         ]
-    }
-
-
-# ==================== Accessibility Endpoints ====================
-
-@app.post("/api/accessibility/audit")
-async def audit_content_accessibility(
-    content_id: str,
-    wcag_level: str = "AA",
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Audit content for accessibility"""
-    agent = AccessibilityAgent(db)
-
-    from agents.base_agent import AgentInput
-    agent_input = AgentInput(
-        data={"action": "audit", "content_id": content_id, "wcag_level": wcag_level},
-        user_id=current_user.id
-    )
-
-    result = await agent.process(agent_input)
-
-    return {
-        "status": result.status,
-        "data": result.data,
-        "errors": result.errors
     }
 
 
