@@ -1,4 +1,4 @@
-"""API routes for Academian Education Platform"""
+"""API routes for Education Intelligence & Content Orchestration Platform"""
 
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Header
 from pydantic import BaseModel
@@ -8,6 +8,7 @@ from database.db import get_db
 from database.models import Alignment, User
 # from api.courses import router as courses_router  # DISABLED: Models Course/Unit not defined in database.models
 from services.alignment_service import AlignmentService
+from api.standards import router as standards_router
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -15,6 +16,9 @@ import uuid
 
 router = APIRouter(prefix="/api", tags=["api"])
 logger = logging.getLogger(__name__)
+
+# Include standards routes
+router.include_router(standards_router)
 
 # Courses router disabled: dependency models removed as dead code
 # router.include_router(courses_router)
