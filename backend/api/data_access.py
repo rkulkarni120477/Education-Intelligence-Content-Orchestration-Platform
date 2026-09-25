@@ -22,6 +22,7 @@ router = APIRouter(prefix="/api/v1", tags=["data-access"])
 
 @router.get("/content")
 async def list_content(
+    page: int = 0,
     skip: int = 0,
     limit: int = 50,
     status_filter: Optional[str] = None,
@@ -31,13 +32,16 @@ async def list_content(
     try:
         tenant_id = get_current_tenant_id()
 
+        # Convert page to skip if page is provided
+        actual_skip = (page * limit) if page > 0 else skip
+
         query = db.query(Content).filter(Content.tenant_id == tenant_id)
 
         if status_filter:
             query = query.filter(Content.status == status_filter)
 
         total = query.count()
-        content_items = query.order_by(Content.created_at.desc()).offset(skip).limit(limit).all()
+        content_items = query.order_by(Content.created_at.desc()).offset(actual_skip).limit(limit).all()
 
         return {
             "status": "success",
@@ -111,6 +115,7 @@ async def get_content_detail(
 
 @router.get("/curriculum")
 async def list_curriculum(
+    page: int = 0,
     skip: int = 0,
     limit: int = 50,
     status_filter: Optional[str] = None,
@@ -120,13 +125,16 @@ async def list_curriculum(
     try:
         tenant_id = get_current_tenant_id()
 
+        # Convert page to skip if page is provided
+        actual_skip = (page * limit) if page > 0 else skip
+
         query = db.query(Curriculum).filter(Curriculum.tenant_id == tenant_id)
 
         if status_filter:
             query = query.filter(Curriculum.status == status_filter)
 
         total = query.count()
-        curriculum = query.order_by(Curriculum.created_at.desc()).offset(skip).limit(limit).all()
+        curriculum = query.order_by(Curriculum.created_at.desc()).offset(actual_skip).limit(limit).all()
 
         return {
             "status": "success",
@@ -217,6 +225,7 @@ async def get_curriculum_detail(
 
 @router.get("/alignments-list")
 async def list_all_alignments(
+    page: int = 0,
     skip: int = 0,
     limit: int = 50,
     status_filter: Optional[str] = None,
@@ -230,6 +239,9 @@ async def list_all_alignments(
     try:
         tenant_id = get_current_tenant_id()
 
+        # Convert page to skip if page is provided
+        actual_skip = (page * limit) if page > 0 else skip
+
         query = db.query(Alignment).filter(Alignment.tenant_id == tenant_id)
 
         if status_filter:
@@ -239,7 +251,7 @@ async def list_all_alignments(
             query = query.filter(Alignment.source_type == source_type)
 
         total = query.count()
-        alignments = query.order_by(Alignment.confidence.desc()).offset(skip).limit(limit).all()
+        alignments = query.order_by(Alignment.confidence.desc()).offset(actual_skip).limit(limit).all()
 
         return {
             "status": "success",
