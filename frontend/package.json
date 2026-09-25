@@ -1,7 +1,7 @@
 {
-  "name": "academian-agentic-platform-frontend",
+  "name": "academian-education-platform-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Academian Agentic Platform",
+  "description": "Frontend for Academian Education Platform",
   "private": true,
   "scripts": {
     "dev": "next dev",

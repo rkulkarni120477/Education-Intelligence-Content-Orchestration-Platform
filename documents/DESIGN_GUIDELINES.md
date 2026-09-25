@@ -1,4 +1,4 @@
-# Design Guidelines - Academian Agentic Platform
+# Design Guidelines - Academian Education Platform
 
 ## Visual Identity
 

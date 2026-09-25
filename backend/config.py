@@ -6,7 +6,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "Academian Agentic Platform"
+    APP_NAME: str = "Academian Education Platform"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
