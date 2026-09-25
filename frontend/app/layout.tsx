@@ -3,7 +3,7 @@ import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Academian Education Platform',
+  title: 'Education Intelligence & Content Orchestration Platform',
   description: 'AI-powered educational content development and workflow orchestration',
 }
 

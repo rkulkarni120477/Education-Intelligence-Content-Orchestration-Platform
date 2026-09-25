@@ -63,8 +63,8 @@ export default function LoginPage() {
         {/* Logo and Branding */}
         <div className="text-center mb-8">
           <img src="/academian-logo.png" alt="Academian Logo" className="h-32 mx-auto mb-6" />
-          <h1 className="text-4xl font-semibold text-ink">Academian</h1>
-          <p className="text-ink-muted text-lg mt-2">Education Platform</p>
+          <h1 className="text-4xl font-semibold text-ink">Education Intelligence</h1>
+          <p className="text-ink-muted text-lg mt-2">&amp; Content Orchestration Platform</p>
         </div>
 
         {/* Login Form */}

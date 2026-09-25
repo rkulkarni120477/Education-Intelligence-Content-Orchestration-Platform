@@ -47,8 +47,8 @@ export default function AuthenticatedLayout({
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div className={isSidebarOpen ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold">Academian</h2>
-              <p className="text-xs text-slate-300">Education Platform</p>
+              <h2 className="text-xl font-bold">Education Intelligence</h2>
+              <p className="text-xs text-slate-300">&amp; Content Orchestration Platform</p>
             </div>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -123,7 +123,7 @@ export default function AuthenticatedLayout({
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-surface border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-ink">Academian Education Platform</h1>
+            <h1 className="text-2xl font-semibold text-ink">Education Intelligence &amp; Content Orchestration Platform</h1>
             <div className="text-sm text-ink-muted">
               {tenant && <span>{tenant.name} · </span>}
               {user?.email}
