@@ -9,6 +9,8 @@ from workflows.workforce_alignment_state import WorkforceAlignmentState
 from auth.tenant_context import TenantContext, get_current_tenant_id
 from services.requirements_extraction import RequirementsExtractionService
 from services.course_ingestion import CourseIngestionService
+from services.skill_mapping import SkillMappingService
+from services.recommendations import RecommendationsService
 import logging
 from datetime import datetime
 
@@ -259,17 +261,49 @@ def map_workforce_skills(state: WorkforceAlignmentState) -> WorkforceAlignmentSt
         state.current_node = "map_workforce_skills"
         logger.info("Mapping workforce skills to course content")
 
-        # Placeholder: actual implementation would:
-        # 1. Use Claude to identify skill-to-content mappings
-        # 2. Apply proficiency rubric
-        # 3. Score alignments (0-1)
-        # 4. Create SkillAlignment records
-        # 5. Track evidence anchors
+        # Initialize skill mapping service
+        service = SkillMappingService()
+
+        # Prepare content items from course structure
+        course_content = []
+        if state.course_hierarchy_data:
+            for module in state.course_hierarchy_data.get('modules', []):
+                course_content.append({
+                    'title': module.get('title', ''),
+                    'description': module.get('description', ''),
+                    'type': 'module',
+                })
+
+        # Map skills to content
+        mapping_result = service.map_skills_to_content(
+            course_title=state.program_name,
+            course_objectives=state.extracted_learning_objectives or [],
+            course_content=course_content,
+            required_skills=[
+                {'name': skill, 'level': 'intermediate', 'id': skill}
+                for skill in state.extracted_required_skills
+            ] if state.extracted_required_skills else [],
+        )
+
+        # Store mapping results in state
+        state.coverage_by_skill = mapping_result.coverage_by_skill
+        state.total_alignments = mapping_result.total_alignments
+        state.covered_skills = mapping_result.covered_skills
+        state.uncovered_skills = mapping_result.uncovered_skills
+        state.overall_coverage_percentage = mapping_result.overall_coverage
+        state.critical_gaps_identified = mapping_result.critical_gaps
 
         state.skill_mappings_generated = True
         state.completed_nodes.append("map_workforce_skills")
 
-        logger.info("✓ Skill mapping completed")
+        logger.info(f"✓ Skill mapping completed ({mapping_result.total_alignments} alignments, {mapping_result.overall_coverage:.1%} coverage)")
+
+        # Trigger human review if coverage is low
+        if mapping_result.overall_coverage < 0.7:
+            state.human_interrupt_pending = True
+            state.human_interrupt_reason = f"Low skill coverage ({mapping_result.overall_coverage:.0%}). Review and approve mappings."
+            state.current_checkpoint = "mapping_review"
+
         return state
 
     except Exception as e:
@@ -290,21 +324,53 @@ def calculate_coverage_and_gaps(state: WorkforceAlignmentState) -> WorkforceAlig
     - Calculate coverage percentage per skill
     - Identify gaps and assess severity
     - Generate coverage report
+    - Generate improvement recommendations
     - Rank gaps by criticality
     """
     try:
         state.current_node = "calculate_coverage_and_gaps"
         logger.info("Calculating coverage and gaps")
 
-        # Placeholder: actual implementation would:
-        # 1. Aggregate SkillAlignment records
-        # 2. Calculate coverage per skill
-        # 3. Identify missing skills
-        # 4. Assess gap severity
-        # 5. Create CoverageReport and GapAnalysis records
+        # Generate recommendations based on gaps
+        recommendations_service = RecommendationsService()
+
+        # Prepare gaps data for recommendations
+        gaps = [
+            {
+                'skill_id': gap['skill_name'],
+                'skill_name': gap['skill_name'],
+                'required_proficiency': gap.get('required_proficiency', 'intermediate'),
+                'current_coverage': gap.get('current_coverage', 0),
+                'gap_severity': gap.get('gap_severity', 'medium'),
+            }
+            for gap in state.critical_gaps_identified or []
+        ]
+
+        # Generate recommendations
+        recommendations_result = recommendations_service.generate_recommendations(
+            course_title=state.program_name,
+            current_coverage=state.coverage_by_skill or {},
+            gaps=gaps,
+            course_structure=state.course_hierarchy_data or {},
+        )
+
+        # Store recommendations in state
+        state.recommendations_generated = True
+        state.recommendations = [
+            {
+                'id': f"rec_{i}",
+                'type': rec.get('type', 'add_content'),
+                'priority': rec.get('priority', 'medium'),
+                'title': rec.get('title', 'Untitled'),
+                'description': rec.get('description', ''),
+                'affected_skills': rec.get('affected_skills', []),
+            }
+            for i, rec in enumerate(recommendations_result.critical_recommendations +
+                                   recommendations_result.high_priority_recommendations)
+        ]
 
         state.completed_nodes.append("calculate_coverage_and_gaps")
-        logger.info("✓ Coverage and gap analysis completed")
+        logger.info(f"✓ Coverage and gap analysis completed ({len(recommendations_result.critical_recommendations)} critical recommendations)")
 
         return state
 

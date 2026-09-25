@@ -62,6 +62,12 @@ class WorkforceAlignmentState(BaseModel):
     skill_mappings_reviewed: bool = Field(False, description="Skill mappings reviewed by human")
     approved_skill_alignments: List[str] = Field(default_factory=list, description="Approved alignment IDs")
     rejected_skill_alignments: List[str] = Field(default_factory=list, description="Rejected alignment IDs")
+    coverage_by_skill: Dict[str, float] = Field(default_factory=dict, description="Coverage percentage by skill ID")
+    total_alignments: int = Field(0, description="Total skill-to-content alignments created")
+    covered_skills: List[str] = Field(default_factory=list, description="Skills with >= 80% coverage")
+    uncovered_skills: List[str] = Field(default_factory=list, description="Skills with < 10% coverage")
+    overall_coverage_percentage: float = Field(0.0, description="Weighted average skill coverage (0-1)")
+    critical_gaps_identified: List[Dict[str, Any]] = Field(default_factory=list, description="Critical skill gaps")
 
     # ===== RECOMMENDATIONS =====
     recommendations_generated: bool = Field(False, description="Recommendations generated")
