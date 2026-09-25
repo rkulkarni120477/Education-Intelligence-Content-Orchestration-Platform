@@ -5,7 +5,8 @@ Manages content-to-standards and objective-to-standards alignments.
 """
 
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, func
+from datetime import datetime
 from database.models import Alignment, Standard, LearningObjective, User
 from auth.tenant_context import get_current_tenant_id
 from typing import List, Optional, Dict, Any
@@ -176,7 +177,7 @@ class AlignmentService:
 
         alignment.status = "approved" if decision == "approved" else "rejected"
         alignment.reviewed_by = reviewer_id
-        alignment.reviewed_at = db.func.now()
+        alignment.reviewed_at = datetime.utcnow()
 
         db.commit()
         db.refresh(alignment)
