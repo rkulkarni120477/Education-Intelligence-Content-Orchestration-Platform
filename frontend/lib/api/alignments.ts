@@ -1,6 +1,12 @@
 import { useQuery, useMutation, UseQueryResult, UseMutationResult } from 'react-query'
 import { apiClient } from './client'
 
+export interface EvidenceItem {
+  source?: string
+  page?: number
+  text?: string
+}
+
 export interface Alignment {
   id: string
   tenant_id: string
@@ -11,7 +17,7 @@ export interface Alignment {
   objective_id?: string
   score: number
   confidence: number
-  evidence: string[]
+  evidence: (string | EvidenceItem)[]
   status: 'candidate' | 'approved' | 'rejected' | 'pending_review'
   reviewed_by?: string
   reviewed_at?: string

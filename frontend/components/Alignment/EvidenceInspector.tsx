@@ -7,6 +7,12 @@ import { SourceReference } from '@/components/Common/SourceReference'
 import { ConfidenceBadge } from '@/components/Common/Badge'
 import { Skeleton } from '@/components/Common/Skeleton'
 
+interface EvidenceItem {
+  source?: string
+  page?: number
+  text?: string
+}
+
 interface EvidenceInspectorProps {
   alignment: Alignment | null
   isLoading?: boolean
@@ -91,13 +97,24 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
               Supporting Evidence ({alignment.evidence.length} items)
             </h4>
             <div className="space-y-3">
-              {alignment.evidence.map((evidence, idx) => (
-                <SourceReference
-                  key={idx}
-                  source={evidence as string}
-                  excerpt={`Evidence excerpt ${idx + 1}`}
-                />
-              ))}
+              {alignment.evidence.map((evidence, idx) => {
+                // Handle both string and object evidence formats
+                const evidenceItem = typeof evidence === 'string'
+                  ? { source: evidence, text: evidence }
+                  : (evidence as EvidenceItem)
+
+                return (
+                  <div key={idx} className="bg-slate-50 rounded border border-slate-200 p-3">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">
+                      {evidenceItem.source || 'Source'}
+                      {evidenceItem.page && ` (p. ${evidenceItem.page})`}
+                    </p>
+                    <p className="text-sm text-slate-800">
+                      {evidenceItem.text || JSON.stringify(evidence)}
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           </div>
         ) : (
