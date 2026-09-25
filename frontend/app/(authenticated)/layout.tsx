@@ -16,6 +16,7 @@ const navigationItems = [
   { href: '/authoring', label: 'Authoring Studio', icon: '✏️' },
   { href: '/review', label: 'Review Inbox', icon: '👀' },
   { href: '/analytics', label: 'Analytics', icon: '📊' },
+  { href: '/agents', label: 'Agents', icon: '🤖' },
 ]
 
 export default function AuthenticatedLayout({
