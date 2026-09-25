@@ -1,0 +1,40 @@
+{
+  "name": "academian-agentic-platform-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Academian Agentic Platform",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.0",
+    "@heroicons/react": "^2.0.0",
+    "axios": "^1.6.0",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-query": "^3.39.0",
+    "recharts": "^2.10.0",
+    "tailwindcss": "^3.3.0",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.4.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.0",
+    "@testing-library/react": "^14.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.16",
+    "jest": "^29.7.0",
+    "playwright": "^1.63.0",
+    "postcss": "^8.4.31",
+    "typescript": "^5.2.0"
+  }
+}

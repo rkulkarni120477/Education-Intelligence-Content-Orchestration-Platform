@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brown-dark: #6B4423;
+  --brown-light: #8B5A3C;
+  --tan: #D2B48C;
+  --cream: #FFF8F0;
+  --tan-dark: #A0826D;
+  --brown-darker: #5A3A1F;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: white;
+  color: var(--brown-dark);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-300 transition-colors font-medium;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors;
+  }
+
+  /* Gradient Background */
+  .gradient-bg {
+    @apply bg-gradient-to-br from-slate-50 to-slate-100;
+  }
+
+  /* Loading Spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-b-4 border-blue-600;
+  }
+}
