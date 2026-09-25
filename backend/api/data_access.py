@@ -31,17 +31,23 @@ async def list_content(
     """List all content from database with proper tenant filtering."""
     try:
         tenant_id = get_current_tenant_id()
+        logger.info(f"[GET /content] tenant_id={tenant_id}, page={page}, skip={skip}, limit={limit}")
 
         # Convert page to skip if page is provided
         actual_skip = (page * limit) if page > 0 else skip
 
         query = db.query(Content).filter(Content.tenant_id == tenant_id)
+        logger.info(f"[GET /content] Filtered by tenant_id")
 
         if status_filter:
             query = query.filter(Content.status == status_filter)
+            logger.info(f"[GET /content] Applied status filter: {status_filter}")
 
         total = query.count()
+        logger.info(f"[GET /content] Total count: {total}")
+
         content_items = query.order_by(Content.created_at.desc()).offset(actual_skip).limit(limit).all()
+        logger.info(f"[GET /content] Retrieved {len(content_items)} items")
 
         return {
             "status": "success",
@@ -49,12 +55,14 @@ async def list_content(
             "items": [
                 {
                     "id": c.id,
+                    "tenant_id": c.tenant_id,
                     "title": c.title,
-                    "type": c.content_type,
-                    "source": c.source,
+                    "content_type": c.content_type,
+                    "source_url": c.source,
                     "status": c.status,
                     "version": c.version,
                     "created_at": c.created_at.isoformat() if c.created_at else None,
+                    "updated_at": c.updated_at.isoformat() if c.updated_at else None,
                 }
                 for c in content_items
             ],
@@ -62,7 +70,7 @@ async def list_content(
             "limit": limit,
         }
     except Exception as e:
-        logger.error(f"Error listing content: {str(e)}")
+        logger.error(f"[GET /content] Error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
