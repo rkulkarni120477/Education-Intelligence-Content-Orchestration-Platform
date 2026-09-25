@@ -53,7 +53,7 @@ export default function CurriculumNavigatorPage() {
 
     const buildTree = (units: CurriculumUnit[], parentId?: string): TreeItem[] => {
       return units
-        .filter((u) => u.parent_id === parentId)
+        .filter((u) => (u.parent_id ?? undefined) === parentId)
         .map((unit) => {
           // Get objectives for this unit
           const unitObjectives = structureQuery.data!.objectives
