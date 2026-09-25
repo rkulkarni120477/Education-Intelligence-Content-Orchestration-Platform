@@ -31,30 +31,49 @@ def seed_database():
     db = SessionLocal()
 
     try:
-        # Clear existing data (optional - comment out if you want to preserve data)
-        # db.query(Alignment).delete()
-        # db.query(LearningObjective).delete()
-        # db.query(CurriculumUnit).delete()
-        # db.query(Curriculum).delete()
-        # db.query(Content).delete()
-        # db.query(Standard).delete()
-        # db.query(StandardFramework).delete()
-        # db.query(User).delete()
-        # db.query(Tenant).delete()
-        # db.commit()
+        # Check if system tenant already exists
+        system_tenant = db.query(Tenant).filter(Tenant.slug == "system").first()
+        if system_tenant:
+            # Clear existing data for this tenant
+            db.query(Alignment).filter(Alignment.tenant_id == system_tenant.id).delete()
+            db.query(LearningObjective).filter(LearningObjective.tenant_id == system_tenant.id).delete()
+            db.query(CurriculumUnit).filter(CurriculumUnit.tenant_id == system_tenant.id).delete()
+            db.query(Curriculum).filter(Curriculum.tenant_id == system_tenant.id).delete()
+            db.query(Content).filter(Content.tenant_id == system_tenant.id).delete()
+            db.query(Standard).filter(Standard.tenant_id == system_tenant.id).delete()
+            db.query(StandardFramework).filter(StandardFramework.tenant_id == system_tenant.id).delete()
+            db.commit()
+            tenant_id = system_tenant.id
+        else:
+            # Clear all non-system tenants
+            db.query(Alignment).delete()
+            db.query(LearningObjective).delete()
+            db.query(CurriculumUnit).delete()
+            db.query(Curriculum).delete()
+            db.query(Content).delete()
+            db.query(Standard).delete()
+            db.query(StandardFramework).delete()
+            db.query(User).delete()
+            db.query(Tenant).delete()
+            db.commit()
+            tenant_id = None
 
-        # Create sample tenant
-        tenant = Tenant(
-            id=str(uuid.uuid4()),
-            name="Test School District",
-            slug="test-school-district",
-            type="district",
-            status="active",
-            subscription_tier="professional"
-        )
-        db.add(tenant)
-        db.flush()
-        tenant_id = tenant.id
+        # Create or use existing system tenant
+        if not tenant_id:
+            tenant = Tenant(
+                id=str(uuid.uuid4()),
+                name="System Tenant",
+                slug="system",
+                type="system",
+                status="active",
+                subscription_tier="enterprise"
+            )
+            db.add(tenant)
+            db.flush()
+            tenant_id = tenant.id
+        else:
+            # Tenant already exists, use its ID
+            tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
 
         # Create sample user
         user = User(
