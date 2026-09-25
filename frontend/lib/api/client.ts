@@ -62,7 +62,15 @@ class ApiClient {
           }
         }
 
-        const message = (error.response?.data as any)?.message || error.message || 'API Error'
+        const responseData = error.response?.data as any
+        let message = responseData?.message || error.message || 'API Error'
+        if (responseData?.detail) {
+          message = Array.isArray(responseData.detail)
+            ? responseData.detail
+                .map((d: any) => `${(d.loc || []).slice(1).join('.')}: ${d.msg}`)
+                .join('; ')
+            : responseData.detail
+        }
         const status = error.response?.status || 500
 
         throw new ApiClientError(message, status)
@@ -102,6 +110,14 @@ class ApiClient {
   }
 
   post<T>(url: string, data?: any) {
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      // Let the browser set the multipart boundary; the instance-level
+      // 'application/json' default otherwise wins and the body never
+      // gets parsed as multipart.
+      return this.instance.post<T>(url, data, {
+        headers: { 'Content-Type': undefined },
+      })
+    }
     return this.instance.post<T>(url, data)
   }
 

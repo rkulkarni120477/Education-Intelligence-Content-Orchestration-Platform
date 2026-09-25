@@ -3,12 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --brown-dark: #0F172A;
-  --brown-light: #1E40AF;
-  --tan: #3B82F6;
-  --cream: #FFFFFF;
-  --tan-dark: #2563EB;
-  --brown-darker: #1E3A8A;
+  color-scheme: light;
+
+  --color-primary: #0f766e;
+  --color-primary-hover: #115e59;
+
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #ffffff;
+
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-error: #b91c1c;
+  --color-info: #1d4ed8;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --focus-ring: 0 0 0 3px rgb(15 118 110 / 28%);
 }
 
 * {
@@ -19,65 +36,63 @@
 
 html {
   scroll-behavior: smooth;
-}
-
-body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  color: var(--color-text);
+  background: var(--color-page);
+}
+
+body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: white;
-  color: var(--brown-dark);
+  background: var(--color-page);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+  font: inherit;
 }
 
-/* Scrollbar Styling */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--color-page);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-text-muted);
 }
 
 @layer components {
-  .btn-primary {
-    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md;
-  }
-
-  .btn-secondary {
-    @apply px-4 py-2 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-300 transition-colors font-medium;
-  }
-
-  .card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors;
-  }
-
-  /* Gradient Background */
-  .gradient-bg {
-    @apply bg-gradient-to-br from-slate-50 to-slate-100;
-  }
-
-  /* Loading Spinner */
-  .spinner {
-    @apply animate-spin rounded-full border-b-4 border-blue-600;
+  .surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
   }
 }

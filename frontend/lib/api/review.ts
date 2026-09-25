@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query'
 import { apiClient } from './client'
 
 export interface ReviewItem {
@@ -23,105 +23,110 @@ export interface ReviewDecision {
   requiredChanges?: string[]
 }
 
-export const useReviewQueue = (status?: string) => {
-  return useQuery({
-    queryKey: ['reviews', status],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/v1/reviews', {
-        params: { status }
-      })
-      return data.items as ReviewItem[]
-    },
+export const useReviewQueue = (status?: string): UseQueryResult<ReviewItem[], Error> => {
+  return useQuery(['reviews', status], async () => {
+    const params = new URLSearchParams()
+    if (status) params.append('status', status)
+
+    const response = await apiClient.get<{ items: ReviewItem[] }>(
+      `/api/v1/reviews?${params.toString()}`
+    )
+    return response.data.items
   })
 }
 
-export const useReviewItem = (itemId: string) => {
-  return useQuery({
-    queryKey: ['reviews', itemId],
-    queryFn: async () => {
-      const { data } = await apiClient.get(`/v1/reviews/${itemId}`)
-      return data.item as ReviewItem & {
-        content: string
-        preview?: string
-        metrics?: Record<string, any>
-      }
+export const useReviewItem = (
+  itemId: string
+): UseQueryResult<
+  ReviewItem & { content: string; preview?: string; metrics?: Record<string, any> },
+  Error
+> => {
+  return useQuery(
+    ['reviews', itemId],
+    async () => {
+      const response = await apiClient.get<{
+        item: ReviewItem & { content: string; preview?: string; metrics?: Record<string, any> }
+      }>(`/api/v1/reviews/${itemId}`)
+      return response.data.item
     },
-    enabled: !!itemId,
-  })
+    {
+      enabled: !!itemId,
+    }
+  )
 }
 
-export const useApproveReview = () => {
+export const useApproveReview = (): UseMutationResult<
+  any,
+  Error,
+  { itemId: string; notes?: string },
+  unknown
+> => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: async ({ itemId, notes }: { itemId: string; notes?: string }) => {
-      const { data } = await apiClient.post(`/v1/reviews/${itemId}/approve`, {
-        notes
-      })
-      return data
+  return useMutation(
+    async ({ itemId, notes }) => {
+      const response = await apiClient.post(`/api/v1/reviews/${itemId}/approve`, { notes })
+      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews'] })
-    },
-  })
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['reviews'])
+      },
+    }
+  )
 }
 
-export const useRejectReview = () => {
+export const useRejectReview = (): UseMutationResult<
+  any,
+  Error,
+  { itemId: string; reason?: string; notes?: string },
+  unknown
+> => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: async ({
-      itemId,
-      reason,
-      notes,
-    }: {
-      itemId: string
-      reason?: string
-      notes?: string
-    }) => {
-      const { data } = await apiClient.post(`/v1/reviews/${itemId}/reject`, {
+  return useMutation(
+    async ({ itemId, reason, notes }) => {
+      const response = await apiClient.post(`/api/v1/reviews/${itemId}/reject`, {
         reason,
-        notes
+        notes,
       })
-      return data
+      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews'] })
-    },
-  })
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['reviews'])
+      },
+    }
+  )
 }
 
-export const useRequestRevision = () => {
+export const useRequestRevision = (): UseMutationResult<
+  any,
+  Error,
+  { itemId: string; changes: string[]; notes?: string },
+  unknown
+> => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: async ({
-      itemId,
-      changes,
-      notes,
-    }: {
-      itemId: string
-      changes: string[]
-      notes?: string
-    }) => {
-      const { data } = await apiClient.post(`/v1/reviews/${itemId}/revision`, {
+  return useMutation(
+    async ({ itemId, changes, notes }) => {
+      const response = await apiClient.post(`/api/v1/reviews/${itemId}/revision`, {
         required_changes: changes,
-        notes
+        notes,
       })
-      return data
+      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews'] })
-    },
-  })
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['reviews'])
+      },
+    }
+  )
 }
 
-export const useReviewStats = () => {
-  return useQuery({
-    queryKey: ['reviews', 'stats'],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/v1/reviews/stats')
-      return data.stats
-    },
+export const useReviewStats = (): UseQueryResult<any, Error> => {
+  return useQuery(['reviews', 'stats'], async () => {
+    const response = await apiClient.get<{ stats: any }>('/api/v1/reviews/stats')
+    return response.data.stats
   })
 }

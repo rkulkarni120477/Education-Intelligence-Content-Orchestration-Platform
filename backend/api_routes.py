@@ -1,6 +1,6 @@
 """API routes for Academian Education Platform"""
 
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, Header
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Header
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from database.vector_db import get_vector_store
@@ -875,6 +875,53 @@ async def get_content_jobs(
         }
     except Exception as e:
         logger.error(f"Error getting content jobs: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/v1/content/upload", response_model=Dict[str, Any])
+async def upload_content(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    subject: Optional[str] = Form(None),
+    grade: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    x_tenant_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Upload a content asset and kick off its ingestion job"""
+    try:
+        content_id = str(uuid.uuid4())
+        job_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+
+        job = {
+            "id": job_id,
+            "tenant_id": x_tenant_id or "default",
+            "content_id": content_id,
+            "status": "queued",
+            "progress": 0,
+            "stage": "queued",
+            "title": title,
+            "description": description,
+            "subject": subject,
+            "grade": grade,
+            "tags": tags.split(",") if tags else [],
+            "file_name": file.filename,
+            "mime_type": file.content_type,
+            "started_at": None,
+            "completed_at": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        return {
+            "status": "success",
+            "message": "Content uploaded and queued for processing",
+            "job": job,
+        }
+    except Exception as e:
+        logger.error(f"Error uploading content: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 

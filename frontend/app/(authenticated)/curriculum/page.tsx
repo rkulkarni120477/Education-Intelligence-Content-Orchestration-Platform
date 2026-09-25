@@ -5,7 +5,6 @@ import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
 import {
   useCurricula,
   useCurriculumStructure,
-  useLearningObjective: getLearningObjectiveByIdFromUnitQuery,
   Curriculum,
   CurriculumUnit,
   LearningObjective,

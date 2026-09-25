@@ -11,15 +11,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    'bg-[#1E40AF] text-white hover:bg-[#0F172A] border-2 border-[#1E40AF] hover:border-[#0F172A]',
-  secondary:
-    'bg-white text-[#1E40AF] hover:bg-[#FFFFFF] border-2 border-[#1E40AF] hover:border-[#0F172A]',
-  tertiary:
-    'bg-transparent text-[#1E40AF] hover:bg-[#FFFFFF] border-0 underline hover:no-underline',
-  danger: 'bg-red-600 text-white hover:bg-red-700 border-2 border-red-600 hover:border-red-700',
-  success:
-    'bg-green-600 text-white hover:bg-green-700 border-2 border-green-600 hover:border-green-700',
+  primary: 'bg-primary text-white hover:bg-primary-hover border border-primary',
+  secondary: 'bg-surface text-primary hover:bg-slate-50 border border-primary',
+  tertiary: 'bg-transparent text-primary hover:bg-slate-50 border-0 underline hover:no-underline',
+  danger: 'bg-error text-white hover:bg-red-800 border border-error',
+  success: 'bg-success text-white hover:bg-green-800 border border-success',
 }
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -46,9 +42,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={`
-          font-medium rounded-lg transition
+          font-medium rounded-md transition
           disabled:opacity-60 disabled:cursor-not-allowed
-          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1E40AF]
+          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${className}

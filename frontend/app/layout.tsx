@@ -14,22 +14,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <style>{`
-          :root {
-            --blue-dark: #0F172A;
-            --blue-light: #1E40AF;
-            --blue-primary: #2563EB;
-            --blue-secondary: #3B82F6;
-            --white: #FFFFFF;
-            --gray-light: #F8FAFC;
-          }
-        `}</style>
-      </head>
-      <body className="antialiased bg-white">
-        <Providers>
-          <main>{children}</main>
-        </Providers>
+      <body className="antialiased bg-page text-ink">
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

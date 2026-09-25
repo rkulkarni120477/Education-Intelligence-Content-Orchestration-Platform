@@ -22,9 +22,9 @@ interface CardFooterProps {
 }
 
 const variantStyles: Record<string, string> = {
-  default: 'bg-white border-2 border-[#3B82F6] rounded-lg shadow-sm',
-  outlined: 'bg-[#FFFFFF] border-2 border-[#3B82F6] rounded-lg',
-  elevated: 'bg-white border-0 rounded-lg shadow-md',
+  default: 'bg-surface border border-border rounded-lg shadow-sm',
+  outlined: 'bg-surface border border-border rounded-lg',
+  elevated: 'bg-surface border-0 rounded-lg shadow-md',
 }
 
 export const Card: React.FC<CardProps> & {
@@ -36,7 +36,7 @@ export const Card: React.FC<CardProps> & {
 )
 
 Card.Header = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-b border-[#3B82F6] ${className}`}>{children}</div>
+  <div className={`px-6 py-4 border-b border-border ${className}`}>{children}</div>
 )
 
 Card.Body = ({ children, className = '' }) => (
@@ -44,7 +44,7 @@ Card.Body = ({ children, className = '' }) => (
 )
 
 Card.Footer = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-t border-[#3B82F6] bg-[#FFFFFF] rounded-b-lg ${className}`}>
+  <div className={`px-6 py-4 border-t border-border bg-surface rounded-b-lg ${className}`}>
     {children}
   </div>
 )

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, UseQueryResult } from 'react-query'
 import { apiClient } from './client'
 
 export interface AnalyticsDashboard {
@@ -71,36 +71,56 @@ export interface CoverageAnalytics {
   }>
 }
 
-export const useDashboardAnalytics = (period: string = 'week') => {
-  return useQuery({
-    queryKey: ['analytics', 'dashboard', period],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/v1/analytics/dashboard', {
-        params: { period }
-      })
-      return data.data as AnalyticsDashboard
+export const useDashboardAnalytics = (
+  period: string = 'week'
+): UseQueryResult<AnalyticsDashboard, Error> => {
+  return useQuery(
+    ['analytics', 'dashboard', period],
+    async () => {
+      const response = await apiClient.get<{ data: AnalyticsDashboard }>(
+        `/api/v1/analytics/dashboard?period=${period}`
+      )
+      return response.data.data
     },
-  })
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
 }
 
-export const useAlignmentAnalytics = (subject?: string, grade?: string) => {
-  return useQuery({
-    queryKey: ['analytics', 'alignments', subject, grade],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/v1/analytics/alignments', {
-        params: { subject, grade }
-      })
-      return data.analytics as AlignmentAnalytics
+export const useAlignmentAnalytics = (
+  subject?: string,
+  grade?: string
+): UseQueryResult<AlignmentAnalytics, Error> => {
+  return useQuery(
+    ['analytics', 'alignments', subject, grade],
+    async () => {
+      const params = new URLSearchParams()
+      if (subject) params.append('subject', subject)
+      if (grade) params.append('grade', grade)
+
+      const response = await apiClient.get<{ analytics: AlignmentAnalytics }>(
+        `/api/v1/analytics/alignments?${params.toString()}`
+      )
+      return response.data.analytics
     },
-  })
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
 }
 
-export const useCoverageAnalytics = () => {
-  return useQuery({
-    queryKey: ['analytics', 'coverage'],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/v1/analytics/coverage')
-      return data.coverage as CoverageAnalytics
+export const useCoverageAnalytics = (): UseQueryResult<CoverageAnalytics, Error> => {
+  return useQuery(
+    ['analytics', 'coverage'],
+    async () => {
+      const response = await apiClient.get<{ coverage: CoverageAnalytics }>(
+        '/api/v1/analytics/coverage'
+      )
+      return response.data.coverage
     },
-  })
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
 }

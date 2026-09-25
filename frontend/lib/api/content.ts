@@ -170,8 +170,8 @@ export const useUploadContent = (): UseMutationResult<
     if (grade) formData.append('grade', grade)
     if (tags?.length) formData.append('tags', JSON.stringify(tags))
 
-    const response = await apiClient.post<IngestionJob>('/api/v1/content/upload', formData)
-    return response.data
+    const response = await apiClient.post<{ job: IngestionJob }>('/api/v1/content/upload', formData)
+    return response.data.job
   })
 }
 

@@ -58,28 +58,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <main className="min-h-screen bg-page flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo and Branding */}
         <div className="text-center mb-8">
           <img src="/academian-logo.png" alt="Academian Logo" className="h-32 mx-auto mb-6" />
-          <h1 className="text-4xl font-bold text-[#0F172A]">Academian</h1>
-          <p className="text-[#1E40AF] text-lg mt-2">Education Platform</p>
+          <h1 className="text-4xl font-semibold text-ink">Academian</h1>
+          <p className="text-ink-muted text-lg mt-2">Education Platform</p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleLogin} className="bg-white rounded-lg shadow-lg p-8 border-2 border-[#1E40AF]">
-          <h2 className="text-2xl font-bold text-[#0F172A] mb-6">Sign In</h2>
+        <form onSubmit={handleLogin} className="bg-surface rounded-lg shadow-md p-8 border border-border">
+          <h2 className="text-2xl font-semibold text-ink mb-6">Sign In</h2>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
+            <div role="alert" className="bg-red-50 border border-error text-error px-4 py-3 rounded-md mb-4 text-sm">
               {error}
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#0F172A] mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-ink mb-2">
                 Email Address
               </label>
               <input
@@ -88,13 +88,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="rkulkarni@academian.com"
-                className="w-full px-4 py-3 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-[#FFFFFF]"
+                className="w-full px-4 py-3 border border-border rounded-md focus-visible:border-primary bg-surface"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#0F172A] mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-ink mb-2">
                 Password
               </label>
               <input
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 border-2 border-[#3B82F6] rounded-lg focus:outline-none focus:border-[#1E40AF] bg-[#FFFFFF]"
+                className="w-full px-4 py-3 border border-border rounded-md focus-visible:border-primary bg-surface"
                 required
               />
             </div>
@@ -112,21 +112,21 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 bg-gradient-to-r from-[#1E40AF] to-[#0F172A] text-white font-semibold py-3 rounded-lg hover:from-[#0F172A] hover:to-[#1E3A8A] transition disabled:opacity-60"
+            className="w-full mt-6 bg-primary text-white font-semibold py-3 rounded-md hover:bg-primary-hover transition disabled:opacity-60"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <p className="text-center text-[#1E40AF] text-sm mt-4">
+          <p className="text-center text-ink-muted text-sm mt-4">
             AWS IAM authentication coming soon
           </p>
         </form>
 
         {/* Footer */}
-        <p className="text-center text-[#2563EB] text-xs mt-6">
+        <p className="text-center text-ink-muted text-xs mt-6">
           © 2026 Academian Education. All rights reserved.
         </p>
       </div>
-    </div>
+    </main>
   )
 }
