@@ -21,15 +21,15 @@ export default function AlignmentWorkspacePage() {
   const { isAuthenticated } = useAuthRequired()
 
   // Get context from URL params
-  const contentId = searchParams.get('content_id') || ''
-  const objectiveId = searchParams.get('objective_id') || ''
-  const standardId = searchParams.get('standard_id') || ''
-  const frameworkId = searchParams.get('framework_id') || ''
+  const contentId = searchParams.get('content_id')
+  const objectiveId = searchParams.get('objective_id')
+  const standardId = searchParams.get('standard_id')
+  const frameworkId = searchParams.get('framework_id')
 
   const [selectedAlignmentId, setSelectedAlignmentId] = useState<string>('')
 
-  // Fetch candidate alignments
-  const candidatesQuery = useCandidateAlignments(contentId || standardId, frameworkId)
+  // Fetch candidate alignments (all candidates if no specific content/standard)
+  const candidatesQuery = useCandidateAlignments(contentId || standardId || undefined, frameworkId || undefined)
   const approveMutation = useApproveAlignment()
   const rejectMutation = useRejectAlignment()
 
@@ -106,16 +106,22 @@ export default function AlignmentWorkspacePage() {
       </div>
 
       {/* Context Information */}
-      {(contentId || standardId) && (
-        <Card variant="outlined" className="bg-blue-50 border-blue-200">
-          <Card.Body>
-            <p className="text-sm text-blue-800">
-              {contentId && '📄 '}Reviewing alignments for:{' '}
-              <strong>{contentId || standardId}</strong>
-            </p>
-          </Card.Body>
-        </Card>
-      )}
+      <Card variant="outlined" className="bg-blue-50 border-blue-200">
+        <Card.Body>
+          <p className="text-sm text-blue-800">
+            {contentId || standardId ? (
+              <>
+                {contentId && '📄 '}Reviewing alignments for:{' '}
+                <strong>{contentId || standardId}</strong>
+              </>
+            ) : (
+              <>
+                📋 Reviewing <strong>all alignment candidates</strong> ready for your approval
+              </>
+            )}
+          </p>
+        </Card.Body>
+      </Card>
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

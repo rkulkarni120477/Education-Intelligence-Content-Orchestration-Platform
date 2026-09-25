@@ -91,27 +91,31 @@ export const useAlignmentsForStandard = (
   )
 }
 
-// Fetch candidate alignments for content
+// Fetch candidate alignments for content or all candidates
 export const useCandidateAlignments = (
-  contentId: string,
+  contentId?: string,
   frameworkId?: string
 ): UseQueryResult<Alignment[], Error> => {
   return useQuery(
     ['candidate-alignments', contentId, frameworkId],
     async () => {
       const params = new URLSearchParams()
-      params.append('source_type', 'content')
-      params.append('source_id', contentId)
+
+      // If contentId provided, filter by that source
+      if (contentId) {
+        params.append('source_type', 'content')
+        params.append('source_id', contentId)
+      }
+
       params.append('status', 'candidate')
       if (frameworkId) params.append('framework_id', frameworkId)
 
-      const response = await apiClient.get<Alignment[]>(
+      const response = await apiClient.get<{ alignments: Alignment[] } | Alignment[]>(
         `/api/v1/alignments?${params.toString()}`
       )
-      return response.data
+      return Array.isArray(response.data) ? response.data : (response.data.alignments || [])
     },
     {
-      enabled: !!contentId,
       staleTime: 2 * 60 * 1000, // 2 minutes for candidates
     }
   )
