@@ -46,9 +46,8 @@ export default function AuthenticatedLayout({
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
-            <div className={isSidebarOpen ? 'block' : 'hidden'}>
-              <h2 className="text-xl font-bold">Education Intelligence</h2>
-              <p className="text-xs text-slate-300">&amp; Content Orchestration Platform</p>
+            <div className={isSidebarOpen ? 'flex items-center gap-2' : 'flex justify-center w-12'}>
+              <img src="/academian-logo-icon.png" alt="Academian Logo" className={isSidebarOpen ? 'h-8' : 'h-6'} />
             </div>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
