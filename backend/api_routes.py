@@ -12,6 +12,7 @@ from services.alignment_service import AlignmentService
 from api.standards import router as standards_router
 from api.workforce_alignment import router as workforce_alignment_router
 from api.skill_mapping import router as skill_mapping_router
+from api.data_access import router as data_access_router
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -28,6 +29,9 @@ router.include_router(workforce_alignment_router)
 
 # Include skill mapping and recommendations routes (Phase 4)
 router.include_router(skill_mapping_router)
+
+# Include data access routes (content library, standards, curriculum, alignment)
+router.include_router(data_access_router)
 
 # Courses router disabled: dependency models removed as dead code
 # router.include_router(courses_router)
@@ -286,12 +290,12 @@ async def list_alignments(
             )
         else:
             # Get all alignments with optional status filter
-            # Default to candidate status if not specified
-            status_filter = status or "candidate"
+            # FIXED: Show all statuses by default (not just 'candidate')
             query = db.query(Alignment).filter(
-                Alignment.tenant_id == get_current_tenant_id(),
-                Alignment.status == status_filter
+                Alignment.tenant_id == get_current_tenant_id()
             )
+            if status:
+                query = query.filter(Alignment.status == status)
             alignments = query.order_by(Alignment.confidence.desc()).offset(skip).limit(limit).all()
 
         return {
