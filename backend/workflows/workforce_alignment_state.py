@@ -74,12 +74,16 @@ class WorkforceAlignmentState(BaseModel):
     recommendations: List[Dict[str, Any]] = Field(default_factory=list, description="Generated recommendations")
     approved_recommendations: List[str] = Field(default_factory=list, description="Approved recommendation IDs")
     recommendations_reviewed: bool = Field(False, description="Recommendations reviewed")
+    drafted_recommendations: List[Dict[str, Any]] = Field(default_factory=list, description="Drafted recommendations from Phase 5")
+    calculated_gaps: List[Dict[str, Any]] = Field(default_factory=list, description="Calculated skill gaps")
+    coverage_analysis: Dict[str, Any] = Field(default_factory=dict, description="Coverage analysis results")
 
     # ===== DRAFT MATERIALS =====
     draft_generation_complete: bool = Field(False, description="Draft content generation completed")
     draft_artifact_ids: List[str] = Field(default_factory=list, description="Generated draft artifact IDs")
     draft_validation_passed: bool = Field(False, description="Draft validation passed")
     draft_validation_errors: List[str] = Field(default_factory=list, description="Draft validation error details")
+    generated_course_updates: Dict[str, Any] = Field(default_factory=dict, description="Generated course updates from Phase 5")
 
     # ===== ACCESSIBILITY =====
     accessibility_audit_id: Optional[str] = Field(None, description="Accessibility audit ID")
@@ -87,6 +91,7 @@ class WorkforceAlignmentState(BaseModel):
     accessibility_remediated: bool = Field(False, description="Accessibility issues remediated")
     accessibility_review_complete: bool = Field(False, description="Accessibility review complete")
     accessibility_approved: bool = Field(False, description="Accessibility approved by reviewer")
+    accessibility_audit: Dict[str, Any] = Field(default_factory=dict, description="Accessibility audit results from Phase 5")
 
     # ===== EXPORT & FINAL APPROVAL =====
     export_format: str = Field("imscc", description="Target export format: imscc, zip, pdf, docx")
@@ -96,6 +101,8 @@ class WorkforceAlignmentState(BaseModel):
     final_approval_complete: bool = Field(False, description="Final approval received")
     final_approved_by_user_id: Optional[str] = Field(None, description="User who approved for export")
     final_approval_timestamp: Optional[datetime] = Field(None, description="Final approval timestamp")
+    export_package: Dict[str, Any] = Field(default_factory=dict, description="Final export package from Phase 5")
+    audit_events: List[Dict[str, Any]] = Field(default_factory=list, description="Audit events from workflow completion")
 
     # ===== HUMAN CHECKPOINTS =====
     current_checkpoint: Optional[str] = Field(None, description="Current checkpoint name")
