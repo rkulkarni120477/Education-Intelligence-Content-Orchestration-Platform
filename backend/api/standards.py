@@ -19,7 +19,7 @@ class StandardResponse(BaseModel):
     subject: Optional[str] = None
     domain: Optional[str] = None
     strand: Optional[str] = None
-    version: str
+    version: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -28,9 +28,9 @@ class StandardResponse(BaseModel):
 class StandardFrameworkResponse(BaseModel):
     id: str
     name: str
-    authority: str
-    jurisdiction: str
-    version: str
+    authority: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    version: Optional[str] = None
     description: Optional[str] = None
 
     class Config:

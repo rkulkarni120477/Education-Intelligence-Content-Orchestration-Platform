@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/workforce-alignment", tags=["workforce-alignment"])
+router = APIRouter(prefix="/v1/workforce-alignment", tags=["workforce-alignment"])
 
 
 # ===== REQUEST/RESPONSE MODELS =====

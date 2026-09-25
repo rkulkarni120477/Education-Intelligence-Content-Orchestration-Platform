@@ -6,16 +6,16 @@ Standards endpoints are handled by api/standards.py router.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from database.db import get_db
 from database.models import (
-    Content, ContentChunk, Curriculum, CurriculumUnit, Alignment
+    Content, Curriculum, CurriculumUnit, LearningObjective
 )
 from auth.tenant_context import get_current_tenant_id
 import logging
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1", tags=["data-access"])
+router = APIRouter(prefix="/v1", tags=["data-access"])
 
 
 # ===== CONTENT LIBRARY ENDPOINTS =====
@@ -33,8 +33,8 @@ async def list_content(
         tenant_id = get_current_tenant_id()
         logger.info(f"[GET /content] tenant_id={tenant_id}, page={page}, skip={skip}, limit={limit}")
 
-        # Convert page to skip if page is provided
-        actual_skip = (page * limit) if page > 0 else skip
+        # The UI uses one-based page numbers; preserve skip for page-zero callers.
+        actual_skip = ((page - 1) * limit) if page > 0 else skip
 
         query = db.query(Content).filter(Content.tenant_id == tenant_id)
         logger.info(f"[GET /content] Filtered by tenant_id")
@@ -52,6 +52,7 @@ async def list_content(
         return {
             "status": "success",
             "total": total,
+            "pages": (total + limit - 1) // limit if limit > 0 else 0,
             "items": [
                 {
                     "id": c.id,
@@ -121,171 +122,129 @@ async def get_content_detail(
 
 # ===== CURRICULUM ENDPOINTS =====
 
-@router.get("/curriculum")
-async def list_curriculum(
-    page: int = 0,
-    skip: int = 0,
-    limit: int = 50,
-    status_filter: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    """List all curriculum with proper tenant filtering."""
-    try:
-        tenant_id = get_current_tenant_id()
-
-        # Convert page to skip if page is provided
-        actual_skip = (page * limit) if page > 0 else skip
-
-        query = db.query(Curriculum).filter(Curriculum.tenant_id == tenant_id)
-
-        if status_filter:
-            query = query.filter(Curriculum.status == status_filter)
-
-        total = query.count()
-        curriculum = query.order_by(Curriculum.created_at.desc()).offset(actual_skip).limit(limit).all()
-
-        return {
-            "status": "success",
-            "total": total,
-            "items": [
-                {
-                    "id": c.id,
-                    "title": c.title,
-                    "description": c.description,
-                    "subject": c.subject,
-                    "grade_level": c.grade_level,
-                    "status": c.status,
-                    "version": c.version,
-                    "created_at": c.created_at.isoformat() if c.created_at else None,
-                }
-                for c in curriculum
-            ],
-            "skip": skip,
-            "limit": limit,
-        }
-    except Exception as e:
-        logger.error(f"Error listing curriculum: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+def _iso(dt):
+    return dt.isoformat() if dt else None
 
 
-@router.get("/curriculum/{curriculum_id}")
-async def get_curriculum_detail(
-    curriculum_id: str,
-    db: Session = Depends(get_db),
-):
-    """Get curriculum with all units."""
-    try:
-        tenant_id = get_current_tenant_id()
-
-        curriculum = db.query(Curriculum).filter(
-            Curriculum.id == curriculum_id,
-            Curriculum.tenant_id == tenant_id
-        ).first()
-
-        if not curriculum:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Curriculum not found"
-            )
-
-        units = db.query(CurriculumUnit).filter(
-            CurriculumUnit.curriculum_id == curriculum_id,
-            CurriculumUnit.tenant_id == tenant_id
-        ).order_by(CurriculumUnit.sequence).all()
-
-        return {
-            "status": "success",
-            "curriculum": {
-                "id": curriculum.id,
-                "title": curriculum.title,
-                "description": curriculum.description,
-                "subject": curriculum.subject,
-                "grade_level": curriculum.grade_level,
-                "status": curriculum.status,
-                "version": curriculum.version,
-                "units": [
-                    {
-                        "id": u.id,
-                        "title": u.title,
-                        "description": u.description,
-                        "sequence": u.sequence,
-                        "content_id": u.content_id,
-                    }
-                    for u in units
-                ],
-                "created_at": curriculum.created_at.isoformat() if curriculum.created_at else None,
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting curriculum: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+def _curriculum_dict(c: Curriculum) -> Dict[str, Any]:
+    return {
+        "id": c.id,
+        "tenant_id": c.tenant_id,
+        "name": c.name,
+        "description": c.description or "",
+        "version": c.version,
+        "grade": c.grade,
+        "subject": c.subject,
+        "status": c.status,
+        "created_at": _iso(c.created_at),
+        "updated_at": _iso(c.updated_at),
+    }
 
 
-# ===== ALIGNMENT ENDPOINTS (FIXED) =====
+def _unit_dict(u: CurriculumUnit) -> Dict[str, Any]:
+    return {
+        "id": u.id,
+        "tenant_id": u.tenant_id,
+        "curriculum_id": u.curriculum_id,
+        "parent_id": u.parent_id,
+        "title": u.title,
+        "description": u.description,
+        "sequence": u.sequence,
+        "created_at": _iso(u.created_at),
+        "updated_at": _iso(u.updated_at),
+    }
 
-@router.get("/alignments-list")
-async def list_all_alignments(
-    page: int = 0,
-    skip: int = 0,
-    limit: int = 50,
-    status_filter: Optional[str] = None,
-    source_type: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    """
-    List all alignments from database with proper tenant filtering.
-    Shows all statuses by default (no automatic filtering).
-    """
-    try:
-        tenant_id = get_current_tenant_id()
 
-        # Convert page to skip if page is provided
-        actual_skip = (page * limit) if page > 0 else skip
+def _objective_dict(o: LearningObjective) -> Dict[str, Any]:
+    return {
+        "id": o.id,
+        "tenant_id": o.tenant_id,
+        "unit_id": o.unit_id,
+        "objective": o.objective,
+        "cognitive_level": o.cognitive_level,
+        "created_at": _iso(o.created_at),
+        "updated_at": _iso(o.updated_at),
+    }
 
-        query = db.query(Alignment).filter(Alignment.tenant_id == tenant_id)
 
-        if status_filter:
-            query = query.filter(Alignment.status == status_filter)
+def _get_curriculum_or_404(db: Session, curriculum_id: str, tenant_id: str) -> Curriculum:
+    curriculum = db.query(Curriculum).filter(
+        Curriculum.id == curriculum_id,
+        Curriculum.tenant_id == tenant_id,
+    ).first()
+    if not curriculum:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Curriculum not found")
+    return curriculum
 
-        if source_type:
-            query = query.filter(Alignment.source_type == source_type)
 
-        total = query.count()
-        alignments = query.order_by(Alignment.confidence.desc()).offset(actual_skip).limit(limit).all()
+@router.get("/curricula", tags=["curriculum"])
+async def list_curricula(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+    tenant_id = get_current_tenant_id()
+    curricula = (
+        db.query(Curriculum)
+        .filter(Curriculum.tenant_id == tenant_id)
+        .order_by(Curriculum.created_at.desc())
+        .all()
+    )
+    return [_curriculum_dict(c) for c in curricula]
 
-        return {
-            "status": "success",
-            "total": total,
-            "items": [
-                {
-                    "id": a.id,
-                    "source_type": a.source_type,
-                    "source_id": a.source_id,
-                    "target_type": a.target_type,
-                    "standard_id": a.standard_id,
-                    "objective_id": a.objective_id,
-                    "score": float(a.score) if a.score else 0.0,
-                    "confidence": float(a.confidence) if a.confidence else 0.0,
-                    "evidence": a.evidence or [],
-                    "status": a.status,
-                    "created_at": a.created_at.isoformat() if a.created_at else None,
-                }
-                for a in alignments
-            ],
-            "skip": skip,
-            "limit": limit,
-        }
-    except Exception as e:
-        logger.error(f"Error listing alignments: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+
+@router.get("/curricula/{curriculum_id}", tags=["curriculum"])
+async def get_curriculum(curriculum_id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    tenant_id = get_current_tenant_id()
+    return _curriculum_dict(_get_curriculum_or_404(db, curriculum_id, tenant_id))
+
+
+@router.get("/curricula/{curriculum_id}/units", tags=["curriculum"])
+async def list_curriculum_units(curriculum_id: str, db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+    tenant_id = get_current_tenant_id()
+    _get_curriculum_or_404(db, curriculum_id, tenant_id)
+    units = (
+        db.query(CurriculumUnit)
+        .filter(CurriculumUnit.curriculum_id == curriculum_id, CurriculumUnit.tenant_id == tenant_id)
+        .order_by(CurriculumUnit.sequence)
+        .all()
+    )
+    return [_unit_dict(u) for u in units]
+
+
+@router.get("/curricula/{curriculum_id}/structure", tags=["curriculum"])
+async def get_curriculum_structure(curriculum_id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    tenant_id = get_current_tenant_id()
+    curriculum = _get_curriculum_or_404(db, curriculum_id, tenant_id)
+    units = (
+        db.query(CurriculumUnit)
+        .filter(CurriculumUnit.curriculum_id == curriculum_id, CurriculumUnit.tenant_id == tenant_id)
+        .order_by(CurriculumUnit.sequence)
+        .all()
+    )
+    unit_ids = [u.id for u in units]
+    objectives = (
+        db.query(LearningObjective)
+        .filter(LearningObjective.unit_id.in_(unit_ids), LearningObjective.tenant_id == tenant_id)
+        .all()
+        if unit_ids else []
+    )
+    return {
+        "curriculum": _curriculum_dict(curriculum),
+        "units": [_unit_dict(u) for u in units],
+        "objectives": [_objective_dict(o) for o in objectives],
+    }
+
+
+@router.get("/curriculum-units/{unit_id}/objectives", tags=["curriculum"])
+async def list_unit_objectives(unit_id: str, db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+    tenant_id = get_current_tenant_id()
+    objectives = (
+        db.query(LearningObjective)
+        .filter(LearningObjective.unit_id == unit_id, LearningObjective.tenant_id == tenant_id)
+        .all()
+    )
+    return [_objective_dict(o) for o in objectives]
+
+
+@router.get("/learning-objectives", tags=["curriculum"])
+async def list_learning_objectives(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+    tenant_id = get_current_tenant_id()
+    objectives = db.query(LearningObjective).filter(LearningObjective.tenant_id == tenant_id).all()
+    return [_objective_dict(o) for o in objectives]

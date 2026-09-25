@@ -4,6 +4,7 @@ langchain==0.2.14
 langchain-core==1.6.2
 langchain-community==0.2.14
 langgraph==0.2.14
+langchain-anthropic
 langsmith==0.1.147
 pydantic==2.5.0
 pydantic-settings==2.4.0

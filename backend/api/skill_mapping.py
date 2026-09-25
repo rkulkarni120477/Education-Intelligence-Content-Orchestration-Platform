@@ -19,7 +19,7 @@ import logging
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/skill-mapping", tags=["skill-mapping"])
+router = APIRouter(prefix="/v1/skill-mapping", tags=["skill-mapping"])
 
 
 # ===== REQUEST/RESPONSE MODELS =====
