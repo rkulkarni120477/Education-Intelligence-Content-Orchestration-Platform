@@ -1,8 +1,8 @@
 """
-Common Core State Standards (CCSS) loader.
+Educational Standards Loader.
 
-Loads CCSS K-12 standards from local JSON files.
-Standards are loaded into StandardFramework and Standard models.
+Loads multiple educational standards frameworks (CCSS, NGSS, CSTA, CTE, State Standards)
+from local JSON files into StandardFramework and Standard models.
 """
 
 import json
@@ -15,11 +15,31 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-LOCAL_CCSS_PATH = Path(__file__).parent.parent / "data" / "ccss"
+STANDARDS_PATH = Path(__file__).parent.parent / "data" / "standards"
+
+# Framework definitions: filename -> (framework_name, authority, jurisdiction)
+FRAMEWORK_CONFIGS = {
+    "ccss.json": {
+        "Math": ("Common Core State Standards - Mathematics", "Common Core State Standards Initiative", "United States"),
+        "ELA": ("Common Core State Standards - English Language Arts", "Common Core State Standards Initiative", "United States"),
+    },
+    "ngss.json": {
+        "Science": ("Next Generation Science Standards", "NGSS Lead States", "United States"),
+    },
+    "csta.json": {
+        "CS": ("Computer Science Standards (CSTA)", "Computer Science Teachers Association", "United States"),
+    },
+    "cte.json": {
+        "CTE": ("Career & Technical Education Standards", "Association for Career and Technical Education", "United States"),
+    },
+    "ca_standards.json": {
+        "CA": ("California State Standards", "California State Board of Education", "California"),
+    },
+}
 
 
-class CCSSLoader:
-    """Loads Common Core State Standards into the database."""
+class StandardsLoader:
+    """Loads multiple educational standards frameworks from local JSON files."""
 
     def __init__(self, tenant_id: Optional[str] = None):
         """Initialize loader with optional tenant_id (defaults to system tenant)."""
@@ -44,32 +64,47 @@ class CCSSLoader:
         logger.info(f"Created system tenant: {system_tenant.id}")
         return system_tenant.id
 
-    def load_local_standards(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Load CCSS standards from local JSON file."""
-        standards_file = LOCAL_CCSS_PATH / "standards.json"
-
-        if not standards_file.exists():
-            logger.error(f"Standards file not found: {standards_file}")
-            return {"Mathematics": [], "English Language Arts": []}
-
+    def load_standards_from_file(self, filename: str) -> List[Dict[str, Any]]:
+        """Load standards from a local JSON file."""
         try:
-            with open(standards_file, 'r') as f:
+            if not STANDARDS_PATH.exists():
+                logger.warning(f"Standards directory not found: {STANDARDS_PATH}")
+                return []
+
+            file_path = STANDARDS_PATH / filename
+            if not file_path.exists():
+                logger.warning(f"Standards file not found: {file_path}")
+                return []
+
+            with open(file_path) as f:
                 data = json.load(f)
-
-            standards_by_subject = data.get("standards", {})
-            logger.info(f"Loaded standards from {standards_file}")
-            logger.info(f"  Math standards: {len(standards_by_subject.get('Mathematics', []))}")
-            logger.info(f"  ELA standards: {len(standards_by_subject.get('English Language Arts', []))}")
-
-            return standards_by_subject
+                standards = data if isinstance(data, list) else data.get("standards", [])
+                logger.info(f"Loaded {len(standards)} standards from {filename}")
+                return standards
 
         except Exception as e:
-            logger.error(f"Failed to load local standards: {str(e)}")
-            return {"Mathematics": [], "English Language Arts": []}
+            logger.error(f"Failed to load {filename}: {str(e)}")
+            return []
 
     def parse_grade_from_code(self, code: str) -> Optional[str]:
         """Extract grade level from standard code."""
-        # CCSS codes are like "K.CC.A.1", "1.NBT.A.1", "11-12.A-SSE.A.1"
+        # Support multiple code formats:
+        # CCSS: K.CC.A.1, 1.NBT.A.1, 9-10.A-SSE.A.1, 11-12.A-SSE.A.1
+        # NGSS: K-PS2-1, 1-LS1-1, 9-12-PS1-1
+        # CSTA: K-AP-10, 1-AP-08, 9-12-AP-12
+        # CTE: HSF-1.1, IT-2.2, 9-12 (no grade prefix)
+
+        parts = code.split('-')
+        if parts:
+            grade_part = parts[0]
+            grade_mapping = {
+                'K': 'K', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+                '6': '6', '7': '7', '8': '8', '9': '9', '10': '10',
+                '11': '11-12', '11-12': '11-12', '9-12': '9-12'
+            }
+            return grade_mapping.get(grade_part)
+
+        # Fallback for CCSS-style codes (dot separated)
         parts = code.split('.')
         if parts:
             grade_part = parts[0]
@@ -79,105 +114,83 @@ class CCSSLoader:
                 '11': '11-12', '11-12': '11-12'
             }
             return grade_mapping.get(grade_part)
+
         return None
 
-    def load_ccss_into_db(self, db: Session, batch_size: int = 50) -> Dict[str, int]:
-        """Load CCSS standards into the database."""
+    def load_all_standards(self, db: Session) -> Dict[str, int]:
+        """Load all available standards frameworks into the database."""
         if not self.tenant_id:
             self.tenant_id = self.get_or_create_system_tenant(db)
 
-        # Load standards from local file
-        standards_by_subject = self.load_local_standards()
+        total_frameworks = 0
+        total_standards = 0
 
-        if not any(standards_by_subject.values()):
-            logger.warning("No standards loaded from file")
-            return {"frameworks": 0, "standards": 0}
+        # Load each framework
+        for filename, framework_configs in FRAMEWORK_CONFIGS.items():
+            standards_data = self.load_standards_from_file(filename)
 
-        # Create frameworks
-        frameworks = self._create_frameworks(db)
+            if not standards_data:
+                continue
 
-        standards_created = 0
+            for key, (framework_name, authority, jurisdiction) in framework_configs.items():
+                logger.info(f"Loading {framework_name}...")
 
-        # Load Math standards
-        if frameworks.get('Mathematics') and standards_by_subject.get("Mathematics"):
-            logger.info(f"Loading {len(standards_by_subject['Mathematics'])} Math standards...")
-            standards_created += self._load_standards_for_framework(
-                db, standards_by_subject["Mathematics"], frameworks['Mathematics'], 'Mathematics', batch_size
-            )
+                # Create framework
+                framework = self._create_framework(
+                    db, framework_name, authority, jurisdiction, filename
+                )
 
-        # Load ELA standards
-        if frameworks.get('English Language Arts') and standards_by_subject.get("English Language Arts"):
-            logger.info(f"Loading {len(standards_by_subject['English Language Arts'])} ELA standards...")
-            standards_created += self._load_standards_for_framework(
-                db, standards_by_subject["English Language Arts"], frameworks['English Language Arts'], 'English Language Arts', batch_size
-            )
+                # Load standards
+                standards_created = self._load_standards_for_framework(
+                    db, standards_data, framework.id, framework_name
+                )
+
+                total_frameworks += 1
+                total_standards += standards_created
 
         return {
-            "frameworks": len(frameworks),
-            "standards": standards_created
+            "frameworks": total_frameworks,
+            "standards": total_standards
         }
 
-    def _create_frameworks(self, db: Session) -> Dict[str, str]:
-        """Create CCSS Math and ELA frameworks."""
-        frameworks = {}
-
-        # Math Framework
-        math_fw = db.query(StandardFramework).filter(
+    def _create_framework(
+        self,
+        db: Session,
+        name: str,
+        authority: str,
+        jurisdiction: str,
+        source: str
+    ) -> StandardFramework:
+        """Create or get a standard framework."""
+        framework = db.query(StandardFramework).filter(
             StandardFramework.tenant_id == self.tenant_id,
-            StandardFramework.name == "Common Core State Standards - Mathematics"
+            StandardFramework.name == name
         ).first()
 
-        if not math_fw:
-            math_fw = StandardFramework(
-                id=str(uuid.uuid4()),
-                tenant_id=self.tenant_id,
-                name="Common Core State Standards - Mathematics",
-                authority="Common Core State Standards Initiative",
-                jurisdiction="United States",
-                version="2010",
-                description="Standards for mathematical content and practice, K-12"
-            )
-            db.add(math_fw)
-            db.flush()
-            logger.info(f"Created Math framework: {math_fw.id}")
-        else:
-            logger.info(f"Using existing Math framework: {math_fw.id}")
+        if framework:
+            logger.info(f"Using existing framework: {name}")
+            return framework
 
-        frameworks['Mathematics'] = math_fw.id
-
-        # ELA Framework
-        ela_fw = db.query(StandardFramework).filter(
-            StandardFramework.tenant_id == self.tenant_id,
-            StandardFramework.name == "Common Core State Standards - English Language Arts"
-        ).first()
-
-        if not ela_fw:
-            ela_fw = StandardFramework(
-                id=str(uuid.uuid4()),
-                tenant_id=self.tenant_id,
-                name="Common Core State Standards - English Language Arts",
-                authority="Common Core State Standards Initiative",
-                jurisdiction="United States",
-                version="2010",
-                description="Standards for reading, writing, speaking, and listening, K-12"
-            )
-            db.add(ela_fw)
-            db.flush()
-            logger.info(f"Created ELA framework: {ela_fw.id}")
-        else:
-            logger.info(f"Using existing ELA framework: {ela_fw.id}")
-
-        frameworks['English Language Arts'] = ela_fw.id
-
-        db.commit()
-        return frameworks
+        framework = StandardFramework(
+            id=str(uuid.uuid4()),
+            tenant_id=self.tenant_id,
+            name=name,
+            authority=authority,
+            jurisdiction=jurisdiction,
+            version="2020",
+            description=f"Loaded from {source}"
+        )
+        db.add(framework)
+        db.flush()
+        logger.info(f"Created framework: {name}")
+        return framework
 
     def _load_standards_for_framework(
         self,
         db: Session,
         standards_list: List[Dict[str, Any]],
         framework_id: str,
-        subject: str,
+        framework_name: str,
         batch_size: int = 50
     ) -> int:
         """Load standards for a specific framework."""
@@ -188,6 +201,9 @@ class CCSSLoader:
             try:
                 code = standard_data.get('code')
                 description = standard_data.get('description', '')
+                grade = standard_data.get('grade')
+                subject = standard_data.get('subject', '')
+                domain = standard_data.get('domain', '')
 
                 if not code:
                     skipped_count += 1
@@ -204,13 +220,19 @@ class CCSSLoader:
                     skipped_count += 1
                     continue
 
-                grade = self.parse_grade_from_code(code)
+                # Parse grade if not provided
+                if not grade:
+                    grade = self.parse_grade_from_code(code)
 
-                # Parse domain from code (e.g., "CC" from "K.CC.A.1")
-                domain = None
-                parts = code.split('.')
-                if len(parts) > 1:
-                    domain = parts[1]
+                # Parse domain from code if not provided
+                if not domain:
+                    parts = code.split('-')
+                    if len(parts) > 1:
+                        domain = parts[1]
+                    else:
+                        parts = code.split('.')
+                        if len(parts) > 1:
+                            domain = parts[1]
 
                 standard = Standard(
                     id=str(uuid.uuid4()),
@@ -221,7 +243,7 @@ class CCSSLoader:
                     grade=grade,
                     subject=subject,
                     domain=domain,
-                    version="2010"
+                    version="2020"
                 )
 
                 db.add(standard)
@@ -230,7 +252,7 @@ class CCSSLoader:
                 # Commit in batches
                 if (i + 1) % batch_size == 0:
                     db.commit()
-                    logger.info(f"  Processed {i + 1}/{len(standards_list)} {subject} standards (created: {created_count}, skipped: {skipped_count})...")
+                    logger.info(f"  Processed {i + 1}/{len(standards_list)} standards (created: {created_count}, skipped: {skipped_count})...")
 
             except Exception as e:
                 logger.debug(f"Error loading standard {standard_data.get('code')}: {str(e)}")
@@ -238,5 +260,5 @@ class CCSSLoader:
                 continue
 
         db.commit()
-        logger.info(f"Completed {subject}: created {created_count}, skipped {skipped_count}")
+        logger.info(f"Completed {framework_name}: created {created_count}, skipped {skipped_count}")
         return created_count
