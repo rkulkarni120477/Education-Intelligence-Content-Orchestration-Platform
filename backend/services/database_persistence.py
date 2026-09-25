@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from database.models import (
     SkillAlignment, Recommendation, GapAnalysis,
-    CoverageReport, AccessibilityAudit
+    CoverageReport, AccessibilityAudit, WorkflowExecution, AgentRun, Workflow
 )
 import uuid
 
@@ -343,4 +343,167 @@ class DatabasePersistenceService:
         except Exception as e:
             session.rollback()
             logger.error(f"Error approving recommendation: {str(e)}")
+            raise
+
+    @staticmethod
+    def save_workflow_execution(
+        session: Session,
+        workflow_execution_data: Dict[str, Any],
+    ) -> str:
+        """
+        Save a complete workflow execution record.
+
+        Args:
+            session: Database session
+            workflow_execution_data: Complete workflow execution data dict with:
+                - workflow_id (str): Workflow definition ID
+                - tenant_id (str): Tenant ID
+                - status (str): Final status (completed, failed, etc.)
+                - input_data (dict): Original input parameters
+                - output_data (dict): Final output/results
+                - error_message (str): Error if failed
+                - started_at (datetime): Start time
+                - completed_at (datetime): Completion time
+                - course_updates (dict): Generated course updates
+                - recommendations (list): Final recommendations
+                - accessibility_audit (dict): Accessibility findings
+                - export_package (dict): Export package metadata
+                - audit_events (list): Audit trail events
+
+        Returns:
+            Created workflow execution ID
+        """
+        try:
+            # Get or create the workflow
+            workflow_id = workflow_execution_data.get('workflow_id', str(uuid.uuid4()))
+            tenant_id = workflow_execution_data['tenant_id']
+
+            # Check if workflow exists, if not create placeholder
+            workflow = session.query(Workflow).filter(
+                Workflow.id == workflow_id
+            ).first()
+
+            if not workflow:
+                workflow = Workflow(
+                    id=workflow_id,
+                    tenant_id=tenant_id,
+                    name=workflow_execution_data.get('program_name', 'Workforce Alignment Workflow'),
+                    description='Workforce alignment workflow',
+                    workflow_type='workforce_alignment',
+                    status='active',
+                )
+                session.add(workflow)
+                session.flush()
+                logger.info(f"Created workflow {workflow_id}")
+
+            # Create workflow execution record
+            execution = WorkflowExecution(
+                id=workflow_execution_data.get('request_id', str(uuid.uuid4())),
+                tenant_id=tenant_id,
+                workflow_id=workflow_id,
+                status=workflow_execution_data.get('workflow_status', 'completed'),
+                input_data={
+                    'program_id': workflow_execution_data.get('program_id'),
+                    'program_name': workflow_execution_data.get('program_name'),
+                    'course_ids': workflow_execution_data.get('course_ids', []),
+                    'input_package_id': workflow_execution_data.get('input_package_id'),
+                },
+                output_data={
+                    'course_updates': workflow_execution_data.get('course_updates'),
+                    'recommendations': workflow_execution_data.get('recommendations'),
+                    'accessibility_audit': workflow_execution_data.get('accessibility_audit'),
+                    'export_package': workflow_execution_data.get('export_package'),
+                    'audit_events': workflow_execution_data.get('audit_events'),
+                },
+                error_message=workflow_execution_data.get('error_message'),
+                started_at=workflow_execution_data.get('started_at', datetime.utcnow()),
+                completed_at=workflow_execution_data.get('completed_at', datetime.utcnow()),
+            )
+
+            session.add(execution)
+            session.flush()
+
+            logger.info(f"✓ Saved workflow execution {execution.id} for workflow {workflow_id}")
+
+            # Optionally save individual agent runs if provided
+            agent_runs_data = workflow_execution_data.get('agent_runs', [])
+            if agent_runs_data:
+                for agent_data in agent_runs_data:
+                    agent_run = AgentRun(
+                        id=str(uuid.uuid4()),
+                        tenant_id=tenant_id,
+                        execution_id=execution.id,
+                        agent_name=agent_data.get('agent_name', 'unknown'),
+                        agent_type=agent_data.get('agent_type', 'workflow_node'),
+                        status=agent_data.get('status', 'completed'),
+                        input_data=agent_data.get('input_data'),
+                        output_data=agent_data.get('output_data'),
+                        error_message=agent_data.get('error_message'),
+                        started_at=agent_data.get('started_at', datetime.utcnow()),
+                        completed_at=agent_data.get('completed_at', datetime.utcnow()),
+                    )
+                    session.add(agent_run)
+
+            session.commit()
+            logger.info(f"✓ Workflow execution and {len(agent_runs_data)} agent runs persisted")
+
+            return execution.id
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error saving workflow execution: {str(e)}")
+            raise
+
+    @staticmethod
+    def save_agent_run(
+        session: Session,
+        execution_id: str,
+        tenant_id: str,
+        agent_name: str,
+        agent_data: Dict[str, Any],
+    ) -> str:
+        """
+        Save an individual agent run within a workflow execution.
+
+        Args:
+            session: Database session
+            execution_id: Parent workflow execution ID
+            tenant_id: Tenant ID
+            agent_name: Name of the agent
+            agent_data: Agent run data dict with:
+                - agent_type (str): Type of agent
+                - status (str): Run status
+                - input_data (dict): Inputs to agent
+                - output_data (dict): Outputs from agent
+                - error_message (str): Error if failed
+                - started_at (datetime): Start time
+                - completed_at (datetime): Completion time
+
+        Returns:
+            Created agent run ID
+        """
+        try:
+            agent_run = AgentRun(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant_id,
+                execution_id=execution_id,
+                agent_name=agent_name,
+                agent_type=agent_data.get('agent_type', 'unknown'),
+                status=agent_data.get('status', 'pending'),
+                input_data=agent_data.get('input_data'),
+                output_data=agent_data.get('output_data'),
+                error_message=agent_data.get('error_message'),
+                started_at=agent_data.get('started_at', datetime.utcnow()),
+                completed_at=agent_data.get('completed_at'),
+            )
+
+            session.add(agent_run)
+            session.commit()
+
+            logger.info(f"✓ Saved agent run {agent_run.id} for {agent_name}")
+            return agent_run.id
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error saving agent run: {str(e)}")
             raise

@@ -264,32 +264,52 @@ def final_approval_interrupt(state: WorkforceAlignmentState) -> WorkforceAlignme
 def persist_artifacts(state: WorkforceAlignmentState) -> WorkforceAlignmentState:
     """Persist all workflow artifacts to database."""
     try:
+        from database.db import SessionLocal
+
         state.current_node = "persist_artifacts"
         logger.info("Persisting workflow artifacts...")
 
-        # Use DatabasePersistenceService to save results
-        service = DatabasePersistenceService()
-
-        # Save workflow execution record
-        workflow_record = {
-            "workflow_id": state.workflow_execution_id,
-            "tenant_id": state.tenant_id,
-            "request_id": state.request_id,
-            "program_name": state.program_name,
-            "workflow_status": "completed",
-            "started_at": state.started_at.isoformat() if state.started_at else None,
-            "completed_at": datetime.utcnow().isoformat(),
-            "course_updates": state.generated_course_updates,
-            "recommendations": state.drafted_recommendations,
-            "accessibility_audit": state.accessibility_audit,
-            "export_package": state.export_package,
-        }
+        # Create a database session
+        session = SessionLocal()
 
         try:
-            service.save_workflow_execution(workflow_record)
-            logger.info("✓ Workflow execution saved to database")
-        except Exception as e:
-            logger.warning(f"Could not save to database: {e}")
+            # Use DatabasePersistenceService to save results
+            service = DatabasePersistenceService()
+
+            # Save workflow execution record with all results
+            workflow_record = {
+                "workflow_id": state.workflow_execution_id or str(uuid.uuid4()),
+                "tenant_id": state.tenant_id,
+                "request_id": state.request_id,
+                "program_id": state.program_id,
+                "program_name": state.program_name,
+                "course_ids": state.course_ids,
+                "input_package_id": state.input_package_id,
+                "workflow_status": state.workflow_status,
+                "started_at": state.started_at,
+                "completed_at": datetime.utcnow(),
+                "course_updates": state.generated_course_updates,
+                "recommendations": state.drafted_recommendations,
+                "accessibility_audit": state.accessibility_audit,
+                "export_package": state.export_package,
+                "audit_events": state.audit_events,
+                "error_message": state.error_message,
+                "agent_runs": [
+                    {
+                        "agent_name": node,
+                        "agent_type": "workflow_node",
+                        "status": "completed",
+                    }
+                    for node in state.completed_nodes
+                ],
+            }
+
+            execution_id = service.save_workflow_execution(session, workflow_record)
+            logger.info(f"✓ Workflow execution {execution_id} saved to database")
+            state.workflow_execution_id = execution_id
+
+        finally:
+            session.close()
 
         state.completed_nodes.append("persist_artifacts")
         state.workflow_status = "completed"
