@@ -38,12 +38,21 @@ class WorkforceAlignmentState(BaseModel):
     requirements_confirmed: bool = Field(False, description="Requirements confirmed by human")
     confirmed_by_user_id: Optional[str] = Field(None, description="User who confirmed requirements")
     requirements_edit_notes: Optional[str] = Field(None, description="Notes on requirement edits")
+    extracted_target_roles: List[Dict[str, str]] = Field(default_factory=list, description="Extracted target roles from LLM")
+    extracted_required_skills: List[Dict[str, str]] = Field(default_factory=list, description="Extracted required skills from LLM")
+    extracted_constraints: Dict[str, Any] = Field(default_factory=dict, description="Extracted constraints from requirements")
+    extracted_accessibility_requirements: List[str] = Field(default_factory=list, description="Extracted accessibility requirements")
+    extracted_style_guidelines: List[str] = Field(default_factory=list, description="Extracted style/branding guidelines")
+    extraction_ambiguities: List[Dict[str, str]] = Field(default_factory=list, description="Ambiguities detected during extraction")
+    extraction_confidence: float = Field(1.0, description="Confidence score of requirements extraction (0-1)")
 
     # ===== COURSE INGESTION & STRUCTURE =====
     course_structure_extracted: bool = Field(False, description="Course structure extraction completed")
     course_package_version_id: Optional[str] = Field(None, description="Course package version ID")
-    extraction_errors: List[Dict[str, str]] = Field(default_factory=list, description="Extraction error details")
+    extraction_errors: List[str] = Field(default_factory=list, description="Extraction error details")
     course_hierarchy_data: Dict[str, Any] = Field(default_factory=dict, description="Extracted course hierarchy")
+    extracted_learning_objectives: List[str] = Field(default_factory=list, description="Learning objectives extracted from course")
+    content_embeddings: Dict[str, List[float]] = Field(default_factory=dict, description="Embeddings for course content items")
 
     # ===== SKILL MAPPING & COVERAGE =====
     skill_mappings_generated: bool = Field(False, description="Skill mappings generated")

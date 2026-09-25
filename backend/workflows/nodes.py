@@ -7,6 +7,8 @@ Each node has typed input/output and handles a specific workflow stage.
 
 from workflows.workforce_alignment_state import WorkforceAlignmentState
 from auth.tenant_context import TenantContext, get_current_tenant_id
+from services.requirements_extraction import RequirementsExtractionService
+from services.course_ingestion import CourseIngestionService
 import logging
 from datetime import datetime
 
@@ -105,15 +107,37 @@ def extract_requirements(state: WorkforceAlignmentState) -> WorkforceAlignmentSt
         state.current_node = "extract_requirements"
         logger.info(f"Extracting requirements for {state.program_name}")
 
-        # Placeholder: actual implementation would call Claude via LangChain
-        # For Phase 1, we'll simulate extracted requirements
+        # Initialize requirements extraction service
+        service = RequirementsExtractionService()
 
-        state.target_role_ids = []  # Would be populated by LLM
-        state.required_skill_ids = []  # Would be populated by LLM
+        # Call Claude for requirements extraction
+        result = service.extract_requirements(
+            program_name=state.program_name,
+            program_context=f"Program ID: {state.program_id}, Courses: {', '.join(state.course_ids)}",
+            institution_goals="To prepare students for workforce roles in the target industry",
+            workforce_role_descriptions="Based on job market analysis and institution mission",
+        )
+
+        # Store extracted data in state
+        state.extracted_target_roles = result.target_roles
+        state.extracted_required_skills = result.required_skills
+        state.extracted_constraints = result.constraints
+        state.extracted_accessibility_requirements = result.accessibility_requirements
+        state.extracted_style_guidelines = result.style_guidelines
+        state.extraction_ambiguities = result.ambiguities
+
         state.requirements_extracted = True
+        state.extraction_confidence = result.confidence
         state.completed_nodes.append("extract_requirements")
 
-        logger.info("✓ Requirements extraction completed")
+        logger.info(f"✓ Requirements extraction completed (confidence: {result.confidence})")
+
+        # If low confidence, trigger human review
+        if result.confidence < 0.7:
+            state.human_interrupt_pending = True
+            state.human_interrupt_reason = "Low confidence in automated requirements extraction"
+            state.current_checkpoint = "requirements_confirmation"
+
         return state
 
     except Exception as e:
@@ -140,22 +164,46 @@ def ingest_and_normalize_course_materials(state: WorkforceAlignmentState) -> Wor
         state.current_node = "ingest_and_normalize_course_materials"
         logger.info(f"Ingesting course materials from package {state.input_package_id}")
 
-        # Placeholder: actual implementation would:
-        # 1. Parse package manifest
-        # 2. Extract hierarchy
-        # 3. Create content chunks
-        # 4. Generate embeddings
-        # 5. Store source anchors
+        # Initialize course ingestion service
+        service = CourseIngestionService()
+
+        # Ingest course package
+        # Note: In production, would get package path from storage service
+        package_path = f"/tmp/packages/{state.input_package_id}"
+
+        hierarchy = service.ingest_package(
+            package_path=package_path,
+            package_format=state.input_package_format,
+        )
+
+        # Extract and store course structure
+        state.course_hierarchy_data = {
+            'course_id': hierarchy.course_id,
+            'course_title': hierarchy.course_title,
+            'course_description': hierarchy.course_description,
+            'modules': hierarchy.modules,
+            'objectives': hierarchy.objectives,
+        }
+
+        # Extract learning objectives
+        learning_objectives = service.extract_learning_objectives(hierarchy)
+        state.extracted_learning_objectives = learning_objectives
+
+        # Generate embeddings for semantic search
+        embeddings = service.generate_embeddings(hierarchy)
+        state.content_embeddings = embeddings
 
         state.course_structure_extracted = True
+        state.extraction_errors = []
         state.completed_nodes.append("ingest_and_normalize_course_materials")
 
-        logger.info("✓ Course ingestion completed")
+        logger.info(f"✓ Course ingestion completed ({len(hierarchy.modules)} modules)")
         return state
 
     except Exception as e:
         logger.error(f"Course ingestion failed: {str(e)}")
         state.error_message = str(e)
+        state.extraction_errors = [str(e)]
         state.workflow_status = "failed"
         return state
 
