@@ -18,7 +18,7 @@ export default function HomePage() {
 
   // Fetch dashboard data
   const processingJobsQuery = useProcessingJobs()
-  const contentQuery = useContentAssets(1, 5, { status: 'review_required' })
+  const contentQuery = useContentAssets(1, 5, { status: 'published' })
   const alignmentsQuery = useAlignments('content')
   const lessonsQuery = useLessons()
   const frameworksQuery = useFrameworks()
@@ -106,9 +106,9 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Items Awaiting Review */}
+        {/* Recently Published Content */}
         <div>
-          <h3 className="text-xl font-bold text-[#0F172A] mb-4">🔍 Awaiting Review</h3>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">📄 Recently Published</h3>
           {contentQuery.isLoading ? (
             <Skeleton className="h-48" />
           ) : reviewItems.length > 0 ? (
@@ -132,7 +132,7 @@ export default function HomePage() {
           ) : (
             <Card variant="outlined">
               <Card.Body>
-                <p className="text-slate-600 text-center">No items awaiting review</p>
+                <p className="text-slate-600 text-center">No published content yet</p>
               </Card.Body>
             </Card>
           )}
