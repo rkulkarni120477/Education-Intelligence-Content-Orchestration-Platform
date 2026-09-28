@@ -1,4 +1,4 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from 'react-query'
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query'
 import { apiClient } from './client'
 
 export interface ContentAsset {
@@ -76,7 +76,8 @@ export const useContentAssets = (
       }
     },
     {
-      staleTime: 2 * 60 * 1000, // 2 minutes (content can change)
+      refetchInterval: 1000, // Reflect upload and background state changes within one second
+      staleTime: 0,
     }
   )
 }
@@ -95,6 +96,7 @@ export const useSearchContent = (
     },
     {
       enabled: !!query,
+      refetchInterval: 1000,
       staleTime: 1 * 60 * 1000,
     }
   )
@@ -158,10 +160,13 @@ export const useUploadContent = (): UseMutationResult<
     subject?: string
     grade?: string
     tags?: string[]
+    onProgress?: (progress: number) => void
   },
   unknown
 > => {
-  return useMutation(async ({ file, title, description, subject, grade, tags }) => {
+  const queryClient = useQueryClient()
+
+  return useMutation(async ({ file, title, description, subject, grade, tags, onProgress }) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('title', title)
@@ -170,8 +175,22 @@ export const useUploadContent = (): UseMutationResult<
     if (grade) formData.append('grade', grade)
     if (tags?.length) formData.append('tags', JSON.stringify(tags))
 
-    const response = await apiClient.post<{ job: IngestionJob }>('/api/v1/content/upload', formData)
+    const response = await apiClient.post<{ job: IngestionJob }>(
+      '/api/v1/content/upload',
+      formData,
+      {
+        onUploadProgress: (event: ProgressEvent) => {
+          if (event.lengthComputable) {
+            onProgress?.(Math.round((event.loaded / event.total) * 100))
+          }
+        },
+      }
+    )
     return response.data.job
+  }, {
+    onSuccess: async () => {
+      await queryClient.refetchQueries(['content-assets'])
+    },
   })
 }
 

@@ -109,16 +109,17 @@ class ApiClient {
     return this.instance.get<T>(url, config)
   }
 
-  post<T>(url: string, data?: any) {
+  post<T>(url: string, data?: any, config?: any) {
     if (typeof FormData !== 'undefined' && data instanceof FormData) {
       // Let the browser set the multipart boundary; the instance-level
       // 'application/json' default otherwise wins and the body never
       // gets parsed as multipart.
       return this.instance.post<T>(url, data, {
-        headers: { 'Content-Type': undefined },
+        ...config,
+        headers: { ...config?.headers, 'Content-Type': undefined },
       })
     }
-    return this.instance.post<T>(url, data)
+    return this.instance.post<T>(url, data, config)
   }
 
   put<T>(url: string, data?: any) {

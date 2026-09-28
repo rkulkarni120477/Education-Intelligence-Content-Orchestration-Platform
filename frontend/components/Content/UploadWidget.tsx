@@ -23,6 +23,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
   const [grade, setGrade] = useState('')
   const [tags, setTags] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
@@ -69,6 +70,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
         subject: subject || undefined,
         grade: grade || undefined,
         tags: tags ? tags.split(',').map(t => t.trim()) : undefined,
+        onProgress: setUploadProgress,
       })
 
       // Reset form
@@ -78,9 +80,11 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
       setSubject('')
       setGrade('')
       setTags('')
+      setUploadProgress(100)
 
       onUploadComplete?.(result.id)
     } catch (error: any) {
+      setUploadProgress(0)
       onError?.(error.message || 'Upload failed')
     }
   }
@@ -233,6 +237,21 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
               {(uploadMutation.error as any).message || 'Upload failed'}
             </div>
           )}
+
+          {uploadMutation.isLoading && (
+            <div className="space-y-1" aria-live="polite">
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>Uploading file</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-[#1E40AF] transition-[width] duration-200"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </Card.Body>
 
         <Card.Footer>
@@ -255,6 +274,7 @@ export const UploadWidget: React.FC<UploadWidgetProps> = ({ onUploadComplete, on
                 setSubject('')
                 setGrade('')
                 setTags('')
+                setUploadProgress(0)
               }}
             >
               Clear
