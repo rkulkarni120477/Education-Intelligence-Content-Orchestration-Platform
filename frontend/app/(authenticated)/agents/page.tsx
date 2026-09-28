@@ -50,7 +50,15 @@ export default function AgentsPage() {
 
       {/* Agents Section */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-[#0F172A]">Workflow Agents</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-[#0F172A]">Workflow Agents</h2>
+          <button
+            onClick={() => window.open('/agents/test', '_blank', 'width=1200,height=800')}
+            className="px-4 py-2 bg-[#1E40AF] text-white rounded-lg font-semibold hover:bg-[#1e3a8a] transition"
+          >
+            🧪 Run Agent Tests
+          </button>
+        </div>
 
         {agentsQuery.isLoading ? (
           <div className="space-y-2">
