@@ -18,6 +18,7 @@ export default function AgentTestPage() {
   const { isAuthenticated } = useAuthRequired()
   const [results, setResults] = useState<TestResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState({
     total: 0,
     passed: 0,
@@ -30,28 +31,44 @@ export default function AgentTestPage() {
     const runTests = async () => {
       try {
         setLoading(true)
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/agents/tests/run-all`,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-            },
-          }
-        )
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/agents/tests/run-all`
+        const token = localStorage.getItem('token') || ''
+
+        console.log('Fetching tests from:', apiUrl)
+        console.log('Token available:', !!token)
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        console.log('Response status:', response.status)
+        const contentType = response.headers.get('content-type')
+        console.log('Response content-type:', contentType)
 
         if (!response.ok) {
-          throw new Error('Failed to run tests')
+          const errorText = await response.text()
+          console.error('API Error Response:', errorText)
+          throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`)
         }
 
         const data = await response.json()
+        console.log('Test results received:', data)
+
         setResults(data.results || [])
         setSummary({
-          total: data.total_tests,
-          passed: data.passed,
-          failed: data.failed,
+          total: data.total_tests || 0,
+          passed: data.passed || 0,
+          failed: data.failed || 0,
         })
       } catch (error) {
         console.error('Test execution failed:', error)
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred'
+        setError(errorMsg)
+        setResults([])
         setSummary({
           total: 0,
           passed: 0,
@@ -151,6 +168,26 @@ export default function AgentTestPage() {
             </div>
           )}
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div
+            style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '0.5rem',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+            }}
+          >
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#dc2626', fontWeight: '600' }}>
+              Error Running Tests
+            </h3>
+            <p style={{ margin: 0, color: '#991b1b', fontSize: '0.875rem' }}>
+              {error}
+            </p>
+          </div>
+        )}
 
         {/* Test Results */}
         {!loading && results.length > 0 && (
