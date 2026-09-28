@@ -1,11 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useTenantStore } from '@/lib/stores/tenant'
+import { AgentBox } from '@/components/Common/AgentBox'
+import { getAgentExecutionState } from '@/lib/hooks/useAgentExecution'
+import { useAgentExecutionPolling } from '@/lib/hooks/useAgentExecutionPolling'
 
 const navigationItems = [
   { href: '/home', label: 'Home', icon: '🏠' },
@@ -30,6 +33,17 @@ export default function AuthenticatedLayout({
   const { tenant } = useTenantStore()
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [agentState, setAgentState] = useState(getAgentExecutionState())
+
+  useAgentExecutionPolling()
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAgentState(getAgentExecutionState())
+    }, 500)
+
+    return () => clearInterval(interval)
+  }, [])
 
   if (!isAuthenticated) return null
 
@@ -95,6 +109,16 @@ export default function AuthenticatedLayout({
             )
           })}
         </nav>
+
+        {isSidebarOpen && (
+          <div className="px-0">
+            <AgentBox
+              agentName={agentState.agentName || undefined}
+              progress={agentState.progress}
+              isVisible={agentState.isExecuting}
+            />
+          </div>
+        )}
 
         <div className="border-t border-white/10 p-4">
           {isSidebarOpen ? (

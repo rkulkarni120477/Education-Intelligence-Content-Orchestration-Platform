@@ -7,6 +7,11 @@ from database.models import WorkflowExecution, AgentRun
 from agents.base_agent import AgentFactory, AgentInput, AgentOutput
 from datetime import datetime
 import uuid
+from services.agent_execution_service import (
+    start_agent_execution,
+    update_agent_progress,
+    complete_agent_execution,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +118,10 @@ class WorkflowOrchestrator:
         try:
             state.current_agent = agent_name
 
+            # Track agent execution for UI
+            start_agent_execution(agent_name, state.execution_id)
+            update_agent_progress(10)
+
             # Create agent
             agent = AgentFactory.create(agent_type, self.db)
 
@@ -124,7 +133,9 @@ class WorkflowOrchestrator:
             )
 
             # Execute agent
+            update_agent_progress(30)
             output = await agent.process(agent_input)
+            update_agent_progress(80)
 
             # Store result
             state.results[agent_name] = output
@@ -147,6 +158,10 @@ class WorkflowOrchestrator:
                 completed_at=datetime.utcnow()
             )
             state.agent_runs.append(agent_run_id)
+
+            # Complete agent execution tracking
+            update_agent_progress(100)
+            complete_agent_execution()
 
             # Check for failures
             if output.status == "failed":
@@ -177,6 +192,10 @@ class WorkflowOrchestrator:
             )
             state.agent_runs.append(agent_run_id)
             state.status = "failed"
+
+            # Stop agent execution tracking
+            complete_agent_execution()
+
             return state.dict()
 
     def _create_agent_run(

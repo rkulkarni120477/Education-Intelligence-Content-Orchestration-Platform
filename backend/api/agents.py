@@ -11,6 +11,7 @@ from database.models import (
     WorkflowExecution, AgentRun, Tenant
 )
 from auth.tenant_context import get_current_tenant_id
+from services.agent_execution_service import get_agent_execution_status
 import logging
 
 logger = logging.getLogger(__name__)
@@ -385,4 +386,21 @@ async def get_ai_statistics(
 
     except Exception as e:
         logger.error(f"Error getting AI statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/execution-status", response_model=Dict[str, Any])
+async def get_execution_status():
+    """
+    Get current agent execution status for UI Agent Box.
+
+    Returns real-time execution status including agent name, progress, and execution ID.
+    This endpoint is polled by the frontend to display the Agent Box.
+    """
+    try:
+        status = get_agent_execution_status()
+        logger.debug(f"Agent execution status: {status}")
+        return status
+    except Exception as e:
+        logger.error(f"Error getting execution status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
