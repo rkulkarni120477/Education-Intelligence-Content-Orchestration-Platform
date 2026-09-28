@@ -90,8 +90,21 @@ export default function AgentsPage() {
                         {agent.status === 'active' ? '🟢 Active' : '⚪ Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-[#1E40AF]">
-                      {agent.workflow_count}
+                    <td className="px-4 py-3">
+                      {agent.workflows && agent.workflows.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {agent.workflows.map((workflow, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-medium"
+                            >
+                              {workflow}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-sm">No Workflows Set</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {agent.last_used

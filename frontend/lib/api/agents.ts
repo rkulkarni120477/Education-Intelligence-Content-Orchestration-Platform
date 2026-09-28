@@ -11,6 +11,7 @@ export interface AgentInfo {
   agent_type: string
   status: string
   workflow_count: number
+  workflows: string[]
   last_used?: string
 }
 

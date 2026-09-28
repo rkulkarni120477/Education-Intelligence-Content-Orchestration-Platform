@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database.db import get_db
 from database.models import (
-    WorkflowExecution, AgentRun, Tenant
+    WorkflowExecution, AgentRun, Tenant, Workflow
 )
 from auth.tenant_context import get_current_tenant_id
 from services.agent_execution_service import get_agent_execution_status
@@ -28,6 +28,7 @@ class AgentInfo(BaseModel):
     agent_type: str
     status: str  # active, disabled, degraded, not_configured
     workflow_count: int
+    workflows: List[str]  # List of workflow names using this agent
     last_used: Optional[datetime] = None
 
     class Config:
@@ -188,6 +189,23 @@ async def list_agents(
                 AgentRun.agent_name == agent_id,
             ).scalar() or 0
 
+            # Get workflows that use this agent
+            workflows = db.query(Workflow).filter(
+                Workflow.tenant_id == tenant_id,
+                Workflow.status != "archived"
+            ).all()
+
+            workflow_names = []
+            for workflow in workflows:
+                if workflow.definition:
+                    definition = workflow.definition
+                    if isinstance(definition, dict):
+                        agents = definition.get("agents", [])
+                        for agent in agents:
+                            if agent.get("name") == agent_id or agent.get("id") == agent_id:
+                                workflow_names.append(workflow.name)
+                                break
+
             # Get last usage time
             last_run = db.query(AgentRun).filter(
                 AgentRun.tenant_id == tenant_id,
@@ -201,6 +219,7 @@ async def list_agents(
                 agent_type=agent_config["agent_type"],
                 status=agent_config["status"],
                 workflow_count=workflow_count,
+                workflows=workflow_names,
                 last_used=last_run.completed_at if last_run else None,
             )
             agents_list.append(agent)
