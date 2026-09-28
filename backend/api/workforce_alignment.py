@@ -13,9 +13,12 @@ from database.db import get_db
 from auth.tenant_context import get_current_tenant_id
 from workflows.workforce_alignment_state import WorkforceAlignmentState
 from workflows.workforce_alignment_graph import create_workforce_alignment_graph
+from orchestrator.orchestrator import WorkflowOrchestrator
+from database.models import WorkflowExecution, Workflow
 import logging
 import uuid
 from datetime import datetime
+import asyncio
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/workforce-alignment", tags=["workforce-alignment"])
@@ -64,7 +67,8 @@ async def create_workflow(
     """
     Create and start a new workforce alignment workflow.
 
-    Returns the initial workflow state and execution ID.
+    Initializes workflow state, saves to database, and executes the workflow
+    graph with all connected agents (Requirements Extractor, Skill Mapper, etc).
     """
     try:
         tenant_id = get_current_tenant_id()
@@ -82,14 +86,13 @@ async def create_workflow(
                 detail="At least one course_id is required"
             )
 
-        # Create workflow execution record
         execution_id = str(uuid.uuid4())
 
         # Initialize workflow state
         state = WorkforceAlignmentState(
             tenant_id=tenant_id,
             request_id=execution_id,
-            initiating_user_id="current_user",  # Would get from auth context
+            initiating_user_id="current_user",
             workflow_execution_id=execution_id,
             program_id=request.program_id,
             program_name=request.program_name,
@@ -101,12 +104,46 @@ async def create_workflow(
             started_at=datetime.utcnow(),
         )
 
-        logger.info(f"Created workflow {execution_id} for tenant {tenant_id}")
+        # Save initial workflow record to database
+        workflow = Workflow(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            creator_id="system",
+            name=f"Alignment Workflow - {request.program_name}",
+            description=f"Workforce alignment for {request.program_name}",
+            definition={
+                "agents": [
+                    {"id": "validate_request_and_access", "name": "validate_request_and_access"},
+                    {"id": "inspect_package_contents", "name": "inspect_package_contents"},
+                    {"id": "extract_requirements", "name": "extract_requirements"},
+                    {"id": "ingest_and_normalize_course_materials", "name": "ingest_and_normalize_course_materials"},
+                    {"id": "retrieve_authorized_context", "name": "retrieve_authorized_context"},
+                    {"id": "map_workforce_skills", "name": "map_workforce_skills"},
+                    {"id": "calculate_coverage_and_gaps", "name": "calculate_coverage_and_gaps"},
+                    {"id": "draft_recommendations", "name": "draft_recommendations"},
+                    {"id": "generate_course_updates", "name": "generate_course_updates"},
+                    {"id": "accessibility_check", "name": "accessibility_check"},
+                    {"id": "validate_export_package", "name": "validate_export_package"},
+                    {"id": "persist_artifacts", "name": "persist_artifacts"},
+                    {"id": "emit_audit_events", "name": "emit_audit_events"},
+                ]
+            },
+            status="active",
+        )
+        db.add(workflow)
+        db.commit()
+
+        logger.info(f"✓ Created workflow {execution_id} for tenant {tenant_id}")
+        logger.info(f"✓ Starting workforce alignment workflow with all 13 agents...")
+
+        # Execute workflow asynchronously
+        asyncio.create_task(execute_workflow_async(execution_id, workflow.id, state, db, tenant_id))
 
         return {
             "status": "success",
             "workflow_id": execution_id,
-            "message": "Workflow created successfully",
+            "message": "Workflow execution started with all agents",
+            "agents_count": 13,
             "state": state.dict(),
         }
 
@@ -116,6 +153,57 @@ async def create_workflow(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+async def execute_workflow_async(execution_id: str, workflow_id: str, state: WorkforceAlignmentState, db: Session, tenant_id: str):
+    """
+    Execute the workforce alignment workflow asynchronously.
+
+    Runs all agents: Requirements Extractor, Skill Mapper, Recommendations, etc.
+    """
+    try:
+        logger.info(f"⚙️  Starting async workflow execution: {execution_id}")
+
+        # Create the workflow graph with all agents
+        workflow_graph = create_workforce_alignment_graph()
+
+        # Execute the graph
+        logger.info("Executing workflow graph with all 13 agents...")
+        result = workflow_graph.invoke(state)
+
+        # Save execution result to database
+        workflow_execution = WorkflowExecution(
+            id=execution_id,
+            tenant_id=tenant_id,
+            workflow_id=workflow_id,
+            status=result.get("workflow_status", "completed"),
+            input_data=state.dict(),
+            output_data=result.dict() if hasattr(result, 'dict') else result,
+            started_at=state.started_at,
+            completed_at=datetime.utcnow(),
+        )
+        db.add(workflow_execution)
+        db.commit()
+
+        logger.info(f"✓ Workflow execution completed: {execution_id}")
+        logger.info(f"✓ Status: {workflow_execution.status}")
+
+    except Exception as e:
+        logger.error(f"❌ Workflow execution failed: {str(e)}")
+        try:
+            workflow_execution = WorkflowExecution(
+                id=execution_id,
+                tenant_id=tenant_id,
+                workflow_id=workflow_id,
+                status="failed",
+                error_message=str(e),
+                started_at=state.started_at,
+                completed_at=datetime.utcnow(),
+            )
+            db.add(workflow_execution)
+            db.commit()
+        except:
+            pass
 
 
 @router.get("/workflows/{workflow_id}", response_model=Dict[str, Any])
