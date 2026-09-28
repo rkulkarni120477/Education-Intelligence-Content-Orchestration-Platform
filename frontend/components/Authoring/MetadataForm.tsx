@@ -5,8 +5,8 @@ import { Card } from '@/components/Common/Card'
 import { Button } from '@/components/Common/Button'
 
 interface MetadataFormProps {
-  artifactType: 'lesson' | 'activity' | 'assessment' | ''
-  onTypeSelect: (type: 'lesson' | 'activity' | 'assessment') => void
+  artifactType: 'curriculum' | 'lesson' | 'activity' | 'assessment' | ''
+  onTypeSelect: (type: 'curriculum' | 'lesson' | 'activity' | 'assessment') => void
   metadata: {
     title: string
     description: string
@@ -39,8 +39,8 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
       {/* Artifact Type Selection */}
       <div>
         <h3 className="text-lg font-bold text-[#0F172A] mb-3">What are you creating?</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {(['lesson', 'activity', 'assessment'] as const).map((type) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {(['curriculum', 'lesson', 'activity', 'assessment'] as const).map((type) => (
             <button
               key={type}
               onClick={() => onTypeSelect(type)}
@@ -52,6 +52,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
             >
               <p className="font-bold text-[#0F172A] capitalize">{type}</p>
               <p className="text-xs text-slate-600 mt-1">
+                {type === 'curriculum' && 'Units and objectives'}
                 {type === 'lesson' && 'Complete lesson plan'}
                 {type === 'activity' && 'Learning activity'}
                 {type === 'assessment' && 'Quiz or test'}
@@ -136,7 +137,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
             </div>
 
             {/* Duration (for lessons/activities) */}
-            {artifactType !== 'assessment' && (
+            {artifactType !== 'assessment' && artifactType !== 'curriculum' && (
               <div>
                 <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Duration (minutes)
@@ -192,6 +193,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({
           <p className="font-bold text-blue-800 mb-2">💡 Creating an {artifactType || 'artifact'}</p>
           <p className="text-sm text-blue-700">
             {artifactType === 'lesson' && 'Lessons include objectives, activities, and assessments organized around learning goals.'}
+            {artifactType === 'curriculum' && 'Curricula organize units, learning objectives, lessons, activities, and assessments.'}
             {artifactType === 'activity' && 'Activities are standalone interactive experiences that reinforce learning objectives.'}
             {artifactType === 'assessment' && 'Assessments measure student understanding through tests and quizzes.'}
           </p>

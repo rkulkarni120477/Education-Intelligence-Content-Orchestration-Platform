@@ -13,7 +13,7 @@ interface SelectedContent {
 }
 
 interface ContentSelectorProps {
-  artifactType: 'lesson' | 'activity' | 'assessment'
+  artifactType: 'curriculum' | 'lesson' | 'activity' | 'assessment'
   frameId?: string
   curriculumId?: string
   selectedContent: SelectedContent[]

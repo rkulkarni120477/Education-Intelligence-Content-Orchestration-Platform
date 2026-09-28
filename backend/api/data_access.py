@@ -7,6 +7,8 @@ Standards endpoints are handled by api/standards.py router.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
+from pydantic import BaseModel
+import uuid
 from database.db import get_db
 from database.models import (
     Content, Curriculum, CurriculumUnit, LearningObjective
@@ -16,6 +18,29 @@ import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["data-access"])
+
+
+class CreateCurriculumRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    version: str = "1.0"
+    grade: Optional[str] = None
+    subject: Optional[str] = None
+    status: str = "draft"
+
+
+class CreateCurriculumUnitRequest(BaseModel):
+    curriculum_id: str
+    title: str
+    description: Optional[str] = None
+    sequence: int = 1
+    parent_id: Optional[str] = None
+
+
+class CreateLearningObjectiveRequest(BaseModel):
+    unit_id: str
+    objective: str
+    cognitive_level: Optional[str] = None
 
 
 # ===== CONTENT LIBRARY ENDPOINTS =====
@@ -121,6 +146,81 @@ async def get_content_detail(
 
 
 # ===== CURRICULUM ENDPOINTS =====
+
+@router.post("/curricula", status_code=201)
+async def create_curriculum(
+    request: CreateCurriculumRequest,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    tenant_id = get_current_tenant_id()
+    existing = db.query(Curriculum).filter(
+        Curriculum.tenant_id == tenant_id,
+        Curriculum.name == request.name,
+        Curriculum.version == request.version,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="A curriculum with this name and version already exists")
+
+    curriculum = Curriculum(
+        id=str(uuid.uuid4()),
+        tenant_id=tenant_id,
+        **request.model_dump(),
+    )
+    db.add(curriculum)
+    db.commit()
+    db.refresh(curriculum)
+    return _curriculum_dict(curriculum)
+
+
+@router.post("/curriculum-units", status_code=201)
+async def create_curriculum_unit(
+    request: CreateCurriculumUnitRequest,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    tenant_id = get_current_tenant_id()
+    _get_curriculum_or_404(db, request.curriculum_id, tenant_id)
+    if request.parent_id:
+        parent = db.query(CurriculumUnit).filter(
+            CurriculumUnit.id == request.parent_id,
+            CurriculumUnit.curriculum_id == request.curriculum_id,
+            CurriculumUnit.tenant_id == tenant_id,
+        ).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent unit not found")
+
+    unit = CurriculumUnit(
+        id=str(uuid.uuid4()),
+        tenant_id=tenant_id,
+        **request.model_dump(),
+    )
+    db.add(unit)
+    db.commit()
+    db.refresh(unit)
+    return _unit_dict(unit)
+
+
+@router.post("/learning-objectives", status_code=201)
+async def create_learning_objective(
+    request: CreateLearningObjectiveRequest,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    tenant_id = get_current_tenant_id()
+    unit = db.query(CurriculumUnit).filter(
+        CurriculumUnit.id == request.unit_id,
+        CurriculumUnit.tenant_id == tenant_id,
+    ).first()
+    if not unit:
+        raise HTTPException(status_code=404, detail="Curriculum unit not found")
+
+    objective = LearningObjective(
+        id=str(uuid.uuid4()),
+        tenant_id=tenant_id,
+        **request.model_dump(),
+    )
+    db.add(objective)
+    db.commit()
+    db.refresh(objective)
+    return _objective_dict(objective)
 
 def _iso(dt):
     return dt.isoformat() if dt else None

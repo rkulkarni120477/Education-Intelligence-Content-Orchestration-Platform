@@ -7,6 +7,9 @@ import { MetadataForm } from '@/components/Authoring/MetadataForm'
 import { ContentSelector } from '@/components/Authoring/ContentSelector'
 import { DraftGenerator, type DraftSection } from '@/components/Authoring/DraftGenerator'
 import { Card } from '@/components/Common/Card'
+import { Button } from '@/components/Common/Button'
+import { useCurricula, useCreateCurriculum, useCreateCurriculumUnit, useCreateObjective } from '@/lib/api/curriculum'
+import { apiClient } from '@/lib/api/client'
 
 type Step = 'metadata' | 'content' | 'generate' | 'review'
 
@@ -18,7 +21,7 @@ interface SelectedContent {
 }
 
 interface AuthoringState {
-  artifactType: 'lesson' | 'activity' | 'assessment'
+  artifactType: 'curriculum' | 'lesson' | 'activity' | 'assessment'
   metadata: {
     title: string
     description: string
@@ -32,6 +35,12 @@ interface AuthoringState {
     sections: DraftSection[]
     savedAt?: string
   }
+}
+
+interface CurriculumDraftUnit {
+  title: string
+  description: string
+  objectives: { objective: string; cognitive_level: string }[]
 }
 
 export default function AuthoringStudioPage() {
@@ -61,6 +70,21 @@ export default function AuthoringStudioPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [generationProgress, setGenerationProgress] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [curriculumPlan, setCurriculumPlan] = useState<{
+    mode: 'existing' | 'new'
+    curriculumId: string
+    name: string
+    description: string
+    version: string
+    units: CurriculumDraftUnit[]
+  }>({
+    mode: 'existing', curriculumId: '', name: '', description: '', version: '1.0',
+    units: [{ title: '', description: '', objectives: [{ objective: '', cognitive_level: 'understand' }] }],
+  })
+  const curriculaQuery = useCurricula()
+  const createCurriculumMutation = useCreateCurriculum()
+  const createUnitMutation = useCreateCurriculumUnit()
+  const createObjectiveMutation = useCreateObjective()
 
   if (!isAuthenticated) return null
 
@@ -320,12 +344,67 @@ You've completed this lesson. Great work on your learning journey!`,
 
   const handleSaveDraft = async () => {
     setIsLoading(true)
-    // In real implementation, would call API to save draft
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    // Show success and redirect
-    router.push('/authoring/drafts')
+    try {
+      let curriculumId = curriculumPlan.curriculumId
+      if (state.artifactType === 'curriculum' || curriculumPlan.mode === 'new') {
+        const curriculum = await createCurriculumMutation.mutateAsync({
+          name: curriculumPlan.name,
+          description: curriculumPlan.description,
+          version: curriculumPlan.version,
+          grade: state.metadata.grade,
+          subject: state.metadata.subject,
+          status: 'draft',
+        })
+        curriculumId = curriculum.id
+        for (const [index, unitDraft] of curriculumPlan.units.entries()) {
+          const unit = await createUnitMutation.mutateAsync({
+            curriculum_id: curriculumId,
+            title: unitDraft.title,
+            description: unitDraft.description || undefined,
+            sequence: index + 1,
+          })
+          for (const objectiveDraft of unitDraft.objectives) {
+            if (objectiveDraft.objective.trim()) {
+              await createObjectiveMutation.mutateAsync({
+                unit_id: unit.id,
+                objective: objectiveDraft.objective.trim(),
+                cognitive_level: objectiveDraft.cognitive_level,
+              })
+            }
+          }
+        }
+      }
+
+      if (state.artifactType === 'curriculum') {
+        router.push('/curriculum')
+        return
+      }
+
+      await apiClient.post('/api/v1/lessons', {
+        curriculum_id: curriculumId,
+        title: state.metadata.title,
+        description: state.metadata.description,
+        grade: state.metadata.grade,
+        subject: state.metadata.subject,
+        duration: state.metadata.duration,
+        audience: state.metadata.audience,
+        content_ids: state.selectedContent.filter((item) => item.type === 'content').map((item) => item.id),
+        objective_ids: state.selectedContent.filter((item) => item.type === 'objective').map((item) => item.id),
+        sections: state.draft.sections,
+      })
+      router.push('/curriculum')
+    } catch (error) {
+      console.error('Failed to save authored lesson:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  const updatePlan = (changes: Partial<typeof curriculumPlan>) => setCurriculumPlan((plan) => ({ ...plan, ...changes }))
+  const updatePlanUnit = (unitIndex: number, changes: Partial<CurriculumDraftUnit>) => updatePlan({ units: curriculumPlan.units.map((unit, index) => index === unitIndex ? { ...unit, ...changes } : unit) })
+  const addPlanUnit = () => updatePlan({ units: [...curriculumPlan.units, { title: '', description: '', objectives: [{ objective: '', cognitive_level: 'understand' }] }] })
+  const addPlanObjective = (unitIndex: number) => updatePlan({ units: curriculumPlan.units.map((unit, index) => index === unitIndex ? { ...unit, objectives: [...unit.objectives, { objective: '', cognitive_level: 'understand' }] } : unit) })
+  const updatePlanObjective = (unitIndex: number, objectiveIndex: number, changes: Partial<CurriculumDraftUnit['objectives'][number]>) => updatePlan({ units: curriculumPlan.units.map((unit, index) => index === unitIndex ? { ...unit, objectives: unit.objectives.map((objective, index) => index === objectiveIndex ? { ...objective, ...changes } : objective) } : unit) })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFFFFF] to-white">
@@ -367,16 +446,52 @@ You've completed this lesson. Great work on your learning journey!`,
         {/* Main Content */}
         <div className="bg-white rounded-lg shadow-sm p-8">
           {currentStep === 'metadata' && (
-            <MetadataForm
-              artifactType={state.artifactType}
-              onTypeSelect={(type) => setState((prev) => ({ ...prev, artifactType: type }))}
-              metadata={state.metadata}
-              onMetadataChange={(metadata) =>
-                setState((prev) => ({ ...prev, metadata: { ...prev.metadata, ...metadata } }))
-              }
-              onNext={handleMetadataSubmit}
-              isLoading={isLoading}
-            />
+            <div className="space-y-6">
+              <Card variant="outlined">
+                <Card.Header><h3 className="text-lg font-bold text-[#0F172A]">Curriculum Placement</h3></Card.Header>
+                <Card.Body className="space-y-4">
+                  <div className="flex gap-3">
+                    <Button type="button" variant={curriculumPlan.mode === 'existing' ? 'primary' : 'secondary'} onClick={() => updatePlan({ mode: 'existing' })}>Existing Curriculum</Button>
+                    <Button type="button" variant={curriculumPlan.mode === 'new' ? 'primary' : 'secondary'} onClick={() => updatePlan({ mode: 'new' })}>Create Curriculum</Button>
+                  </div>
+                  {curriculumPlan.mode === 'existing' ? (
+                    <select value={curriculumPlan.curriculumId} onChange={(e) => updatePlan({ curriculumId: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" required>
+                      <option value="">Select curriculum...</option>
+                      {(curriculaQuery.data || []).map((curriculum) => <option key={curriculum.id} value={curriculum.id}>{curriculum.name} v{curriculum.version}</option>)}
+                    </select>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input required placeholder="New curriculum name" value={curriculumPlan.name} onChange={(e) => updatePlan({ name: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" />
+                        <input required placeholder="Version" value={curriculumPlan.version} onChange={(e) => updatePlan({ version: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" />
+                      </div>
+                      <textarea placeholder="Curriculum description" value={curriculumPlan.description} onChange={(e) => updatePlan({ description: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg h-16 resize-none" />
+                      {curriculumPlan.units.map((unit, unitIndex) => <div key={unitIndex} className="border border-slate-200 rounded-lg p-3 space-y-2">
+                        <input required placeholder={`Unit ${unitIndex + 1} title`} value={unit.title} onChange={(e) => updatePlanUnit(unitIndex, { title: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                        <input placeholder="Unit description" value={unit.description} onChange={(e) => updatePlanUnit(unitIndex, { description: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                        {unit.objectives.map((objective, objectiveIndex) => <div key={objectiveIndex} className="grid grid-cols-1 md:grid-cols-[1fr_150px] gap-2">
+                          <input placeholder="Learning objective" value={objective.objective} onChange={(e) => updatePlanObjective(unitIndex, objectiveIndex, { objective: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                          <select value={objective.cognitive_level} onChange={(e) => updatePlanObjective(unitIndex, objectiveIndex, { cognitive_level: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg">{['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'].map((level) => <option key={level} value={level}>{level}</option>)}</select>
+                        </div>)}
+                        <Button type="button" variant="secondary" size="sm" onClick={() => addPlanObjective(unitIndex)}>Add Objective</Button>
+                      </div>)}
+                      <Button type="button" variant="secondary" onClick={addPlanUnit}>Add Unit</Button>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+              <MetadataForm
+                artifactType={state.artifactType}
+                onTypeSelect={(type) => {
+                  setState((prev) => ({ ...prev, artifactType: type }))
+                  if (type === 'curriculum') updatePlan({ mode: 'new', curriculumId: '' })
+                }}
+                metadata={state.metadata}
+                onMetadataChange={(metadata) => setState((prev) => ({ ...prev, metadata: { ...prev.metadata, ...metadata } }))}
+                onNext={handleMetadataSubmit}
+                isLoading={isLoading}
+              />
+            </div>
           )}
 
           {currentStep === 'content' && (

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
-import { useFrameworks, useStandardHierarchy, useStandard, Standard, StandardFramework } from '@/lib/api/standards'
+import { useFrameworks, useStandardHierarchy, useStandard, useCreateFramework, useCreateStandard, Standard, StandardFramework } from '@/lib/api/standards'
 import { TreeView } from '@/components/Common/TreeNode'
 import { StandardDetail } from '@/components/Standards/StandardDetail'
 import { Card } from '@/components/Common/Card'
@@ -22,9 +22,14 @@ export default function StandardsExplorerPage() {
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('')
   const [selectedStandardId, setSelectedStandardId] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [showAddStandards, setShowAddStandards] = useState(false)
+  const [frameworkForm, setFrameworkForm] = useState({ name: '', authority: '', jurisdiction: '', version: '', description: '' })
+  const [standardForm, setStandardForm] = useState({ code: '', description: '', grade: '', subject: '', domain: '', strand: '', version: '' })
 
   // Fetch frameworks
   const frameworksQuery = useFrameworks()
+  const createFrameworkMutation = useCreateFramework()
+  const createStandardMutation = useCreateStandard()
 
   // Fetch hierarchy for selected framework
   const hierarchyQuery = useStandardHierarchy(selectedFrameworkId)
@@ -32,10 +37,14 @@ export default function StandardsExplorerPage() {
   // Fetch selected standard detail
   const standardDetailQuery = useStandard(selectedStandardId)
 
-  if (!isAuthenticated) return null
-
   const frameworks = frameworksQuery.data || []
   const selectedFramework = frameworks.find(f => f.id === selectedFrameworkId)
+
+  useEffect(() => {
+    if (!selectedFrameworkId && frameworks.length > 0) {
+      setSelectedFrameworkId(frameworks[0].id)
+    }
+  }, [frameworks, selectedFrameworkId])
 
   // Convert hierarchy to tree items
   const treeItems: TreeItem[] = useMemo(() => {
@@ -52,6 +61,8 @@ export default function StandardsExplorerPage() {
     return hierarchyQuery.data.hierarchy.map(convertToTreeItem)
   }, [hierarchyQuery.data])
 
+  if (!isAuthenticated) return null
+
   const handleFrameworkSelect = (frameworkId: string) => {
     setSelectedFrameworkId(frameworkId)
     setSelectedStandardId('')
@@ -67,15 +78,68 @@ export default function StandardsExplorerPage() {
     window.location.href = `/alignment?standard_id=${standardId}`
   }
 
+  const handleCreateFramework = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const framework = await createFrameworkMutation.mutateAsync(frameworkForm)
+    setFrameworkForm({ name: '', authority: '', jurisdiction: '', version: '', description: '' })
+    setSelectedFrameworkId(framework.id)
+  }
+
+  const handleCreateStandard = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!selectedFrameworkId) return
+    await createStandardMutation.mutateAsync({
+      framework_id: selectedFrameworkId,
+      ...standardForm,
+    })
+    setStandardForm({ code: '', description: '', grade: '', subject: '', domain: '', strand: '', version: '' })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="flex items-start justify-between gap-4">
         <h1 className="text-4xl font-bold text-[#0F172A]">Standards Explorer</h1>
+        <Button type="button" onClick={() => setShowAddStandards(!showAddStandards)}>
+          {showAddStandards ? 'Close Add Standards' : 'Add Standards'}
+        </Button>
+      </div>
+      <div>
         <p className="text-[#1E40AF] mt-2">
           Browse educational standards frameworks and create alignments with your content
         </p>
       </div>
+
+      {showAddStandards && <Card variant="outlined">
+        <Card.Header>
+          <h2 className="text-lg font-bold text-[#0F172A]">Add Standards</h2>
+          <p className="text-sm text-slate-600 mt-1">Create a framework or add a standard to the selected framework.</p>
+        </Card.Header>
+        <Card.Body className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <form onSubmit={handleCreateFramework} className="space-y-3">
+            <h3 className="font-bold text-[#0F172A]">New Framework</h3>
+            <input required placeholder="Framework name" value={frameworkForm.name} onChange={(e) => setFrameworkForm({ ...frameworkForm, name: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" />
+            <div className="grid grid-cols-2 gap-3">
+              <input placeholder="Authority" value={frameworkForm.authority} onChange={(e) => setFrameworkForm({ ...frameworkForm, authority: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" />
+              <input placeholder="Version" value={frameworkForm.version} onChange={(e) => setFrameworkForm({ ...frameworkForm, version: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" />
+            </div>
+            <input placeholder="Jurisdiction" value={frameworkForm.jurisdiction} onChange={(e) => setFrameworkForm({ ...frameworkForm, jurisdiction: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg" />
+            <Button type="submit" isLoading={createFrameworkMutation.isLoading}>Create Framework</Button>
+          </form>
+
+          <form onSubmit={handleCreateStandard} className="space-y-3">
+            <h3 className="font-bold text-[#0F172A]">New Standard</h3>
+            <input required disabled={!selectedFrameworkId} placeholder="Code (for example, CCSS.MATH.1)" value={standardForm.code} onChange={(e) => setStandardForm({ ...standardForm, code: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg disabled:bg-slate-100" />
+            <textarea required disabled={!selectedFrameworkId} placeholder="Description" value={standardForm.description} onChange={(e) => setStandardForm({ ...standardForm, description: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg h-20 resize-none disabled:bg-slate-100" />
+            <div className="grid grid-cols-2 gap-3">
+              <input disabled={!selectedFrameworkId} placeholder="Grade" value={standardForm.grade} onChange={(e) => setStandardForm({ ...standardForm, grade: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg disabled:bg-slate-100" />
+              <input disabled={!selectedFrameworkId} placeholder="Subject" value={standardForm.subject} onChange={(e) => setStandardForm({ ...standardForm, subject: e.target.value })} className="w-full px-3 py-2 border-2 border-[#3B82F6] rounded-lg disabled:bg-slate-100" />
+            </div>
+            <Button type="submit" isLoading={createStandardMutation.isLoading} disabled={!selectedFrameworkId}>Add Standard</Button>
+            {!selectedFrameworkId && <p className="text-xs text-slate-500">Select a framework below first.</p>}
+          </form>
+        </Card.Body>
+      </Card>}
 
       {/* Framework Selector */}
       <div>

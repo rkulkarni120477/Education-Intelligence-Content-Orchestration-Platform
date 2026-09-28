@@ -1,4 +1,4 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from 'react-query'
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query'
 import { apiClient } from './client'
 
 export interface EvidenceItem {
@@ -36,6 +36,40 @@ export interface AlignmentEvidence {
 export interface AlignmentDetail extends Alignment {
   evidence_details: AlignmentEvidence[]
   rationale: string
+}
+
+export const downloadAlignmentTemplate = async (): Promise<void> => {
+  const response = await apiClient.get<Blob>('/api/v1/alignments/template', { responseType: 'blob' })
+  const url = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'alignment-candidates-template.xlsx'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+export const useUploadAlignmentCandidates = (): UseMutationResult<
+  { imported_count: number; message: string },
+  Error,
+  File,
+  unknown
+> => {
+  const queryClient = useQueryClient()
+
+  return useMutation(async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post<{ imported_count: number; message: string }>(
+      '/api/v1/alignments/upload',
+      formData,
+    )
+    return response.data
+  }, {
+    onSuccess: async () => {
+      await queryClient.refetchQueries(['candidate-alignments'])
+      await queryClient.refetchQueries(['alignments'])
+    },
+  })
 }
 
 // Fetch alignments

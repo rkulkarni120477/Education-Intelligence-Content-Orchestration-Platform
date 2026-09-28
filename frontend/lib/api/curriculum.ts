@@ -1,4 +1,4 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from 'react-query'
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query'
 import { apiClient } from './client'
 
 export interface Curriculum {
@@ -172,9 +172,15 @@ export const useCreateCurriculum = (): UseMutationResult<
   Omit<Curriculum, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>,
   unknown
 > => {
+  const queryClient = useQueryClient()
+
   return useMutation(async (data) => {
     const response = await apiClient.post<Curriculum>('/api/v1/curricula', data)
     return response.data
+  }, {
+    onSuccess: async () => {
+      await queryClient.refetchQueries(['curricula'])
+    },
   })
 }
 
@@ -185,9 +191,15 @@ export const useCreateCurriculumUnit = (): UseMutationResult<
   Omit<CurriculumUnit, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>,
   unknown
 > => {
+  const queryClient = useQueryClient()
+
   return useMutation(async (data) => {
     const response = await apiClient.post<CurriculumUnit>('/api/v1/curriculum-units', data)
     return response.data
+  }, {
+    onSuccess: async (_unit, variables) => {
+      await queryClient.refetchQueries(['curriculum-structure', variables.curriculum_id])
+    },
   })
 }
 
@@ -198,11 +210,17 @@ export const useCreateObjective = (): UseMutationResult<
   Omit<LearningObjective, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>,
   unknown
 > => {
+  const queryClient = useQueryClient()
+
   return useMutation(async (data) => {
     const response = await apiClient.post<LearningObjective>(
       '/api/v1/learning-objectives',
       data
     )
     return response.data
+  }, {
+    onSuccess: async () => {
+      await queryClient.refetchQueries(['curriculum-structure'])
+    },
   })
 }

@@ -8,12 +8,15 @@ import {
   useApprovedAlignments,
   useApproveAlignment,
   useRejectAlignment,
+  downloadAlignmentTemplate,
+  useUploadAlignmentCandidates,
   Alignment,
 } from '@/lib/api/alignments'
 import { CandidatesList } from '@/components/Alignment/CandidatesList'
 import { EvidenceInspector } from '@/components/Alignment/EvidenceInspector'
 import { ActionButtons } from '@/components/Alignment/ActionButtons'
 import { Card } from '@/components/Common/Card'
+import { Button } from '@/components/Common/Button'
 import { Skeleton } from '@/components/Common/Skeleton'
 
 export default function AlignmentWorkspacePage() {
@@ -29,12 +32,14 @@ export default function AlignmentWorkspacePage() {
 
   const [selectedAlignmentId, setSelectedAlignmentId] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'candidates' | 'approved'>('candidates')
+  const [candidateFile, setCandidateFile] = useState<File | null>(null)
 
   // Fetch candidate alignments (all candidates if no specific content/standard)
   const candidatesQuery = useCandidateAlignments(contentId || standardId || undefined, frameworkId || undefined)
   const approvedQuery = useApprovedAlignments(contentId || standardId || undefined, frameworkId || undefined)
   const approveMutation = useApproveAlignment()
   const rejectMutation = useRejectAlignment()
+  const uploadCandidatesMutation = useUploadAlignmentCandidates()
 
   if (!isAuthenticated) return null
 
@@ -96,6 +101,14 @@ export default function AlignmentWorkspacePage() {
     console.log('Edit alignment:', selectedAlignmentId)
   }
 
+  const handleCandidateUpload = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!candidateFile) return
+    await uploadCandidatesMutation.mutateAsync(candidateFile)
+    setCandidateFile(null)
+    await candidatesQuery.refetch()
+  }
+
   // Statistics for all alignments
   const allAlignments = [...candidates, ...approved]
   const approvedCount = approved.length
@@ -120,6 +133,36 @@ export default function AlignmentWorkspacePage() {
           Review and approve candidate standard alignments based on evidence
         </p>
       </div>
+
+      <Card variant="outlined">
+        <Card.Header>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-[#0F172A]">Bulk Candidate Upload</h2>
+              <p className="text-sm text-slate-600 mt-1">Download the Excel template, fill in candidate alignments, and upload it here.</p>
+            </div>
+            <button type="button" onClick={() => void downloadAlignmentTemplate()} className="text-sm font-medium text-[#1E40AF] underline hover:text-[#0F172A]">
+              Download Excel Template
+            </button>
+          </div>
+        </Card.Header>
+        <Card.Body>
+          <form onSubmit={handleCandidateUpload} className="flex flex-col md:flex-row md:items-center gap-3">
+            <input
+              type="file"
+              accept=".xlsx,.xlsm"
+              onChange={(event) => setCandidateFile(event.target.files?.[0] || null)}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:font-medium file:text-slate-700"
+            />
+            <Button type="submit" isLoading={uploadCandidatesMutation.isLoading} disabled={!candidateFile}>
+              Upload Candidates
+            </Button>
+          </form>
+          {candidateFile && <p className="text-xs text-slate-500 mt-2">Selected: {candidateFile.name}</p>}
+          {uploadCandidatesMutation.data && <p className="text-sm text-green-700 mt-2">{uploadCandidatesMutation.data.message}</p>}
+          {uploadCandidatesMutation.error && <p className="text-sm text-red-600 mt-2">{uploadCandidatesMutation.error.message}</p>}
+        </Card.Body>
+      </Card>
 
       {/* Context Information */}
       <Card variant="outlined" className="bg-blue-50 border-blue-200">

@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status, UploadFil
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from database.db import SessionLocal, get_db
-from database.models import Alignment, Content, User
+from database.models import Alignment, Content, Curriculum, LearningObjective, Lesson, Standard, User
 from auth.tenant_context import get_current_tenant_id
 # from api.courses import router as courses_router  # DISABLED: Models Course/Unit not defined in database.models
 from services.alignment_service import AlignmentService
@@ -20,6 +20,8 @@ from pathlib import Path
 import json
 import logging
 import uuid
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/api", tags=["api"])
 logger = logging.getLogger(__name__)
@@ -115,6 +117,7 @@ class CreateLessonRequest(BaseModel):
     subject: str
     duration: Optional[int] = None
     audience: Optional[str] = None
+    curriculum_id: Optional[str] = None
     content_ids: List[str] = []
     objective_ids: Optional[List[str]] = []
     sections: List[DraftSection]
@@ -348,6 +351,154 @@ async def list_alignments(
         )
 
 
+@router.get("/v1/alignments/template")
+async def download_alignment_template():
+    """Download the Excel template for bulk candidate alignment upload."""
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Alignment Candidates"
+    headers = [
+        "source_type", "source_id", "target_type", "standard_id", "objective_id",
+        "score", "confidence", "evidence", "status",
+    ]
+    sheet.append(headers)
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = "A1:I1"
+    for cell in sheet[1]:
+        cell.font = cell.font.copy(bold=True)
+    for column in sheet.columns:
+        sheet.column_dimensions[column[0].column_letter].width = 22
+
+    instructions = workbook.create_sheet("Instructions")
+    instructions.append(["Field", "Description"])
+    instructions.append(["source_type", "Usually content, lesson, or objective."])
+    instructions.append(["source_id", "ID of the source content, lesson, or objective."])
+    instructions.append(["target_type", "Use standard or objective."])
+    instructions.append(["standard_id", "Required when target_type is standard."])
+    instructions.append(["objective_id", "Required when target_type is objective."])
+    instructions.append(["score", "Optional decimal from 0 to 1."])
+    instructions.append(["confidence", "Optional decimal from 0 to 1."])
+    instructions.append(["evidence", "Optional supporting text or JSON array."])
+    instructions.append(["status", "Optional; defaults to candidate."])
+    instructions.freeze_panes = "A2"
+    instructions.column_dimensions["A"].width = 22
+    instructions.column_dimensions["B"].width = 80
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=alignment-candidates-template.xlsx"},
+    )
+
+
+@router.post("/v1/alignments/upload", response_model=Dict[str, Any])
+async def upload_alignment_candidates(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Validate and import alignment candidates from an Excel workbook."""
+    from openpyxl import load_workbook
+
+    tenant_id = get_current_tenant_id()
+    if not file.filename or not file.filename.lower().endswith((".xlsx", ".xlsm")):
+        raise HTTPException(status_code=400, detail="Upload an .xlsx Excel workbook")
+
+    workbook = load_workbook(BytesIO(await file.read()), read_only=True, data_only=True)
+    sheet = workbook["Alignment Candidates"] if "Alignment Candidates" in workbook.sheetnames else workbook.active
+    rows = list(sheet.iter_rows(values_only=True))
+    if not rows:
+        raise HTTPException(status_code=400, detail="The workbook is empty")
+
+    headers = [str(value).strip() if value is not None else "" for value in rows[0]]
+    required = {"source_type", "source_id", "target_type"}
+    missing = sorted(required - set(headers))
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(missing)}")
+
+    imported = []
+    errors = []
+    for row_number, values in enumerate(rows[1:], start=2):
+        record = {headers[index]: values[index] if index < len(values) else None for index in range(len(headers))}
+        if not any(value not in (None, "") for value in record.values()):
+            continue
+        source_type = str(record.get("source_type") or "").strip()
+        source_id = str(record.get("source_id") or "").strip()
+        target_type = str(record.get("target_type") or "").strip()
+        standard_id = str(record.get("standard_id") or "").strip() or None
+        objective_id = str(record.get("objective_id") or "").strip() or None
+
+        if not source_type or not source_id or target_type not in {"standard", "objective"}:
+            errors.append(f"Row {row_number}: source_type, source_id, and a valid target_type are required")
+            continue
+        if target_type == "standard" and not standard_id:
+            errors.append(f"Row {row_number}: standard_id is required for target_type standard")
+            continue
+        if target_type == "objective" and not objective_id:
+            errors.append(f"Row {row_number}: objective_id is required for target_type objective")
+            continue
+
+        if standard_id and not db.query(Standard).filter(Standard.id == standard_id, Standard.tenant_id == tenant_id).first():
+            errors.append(f"Row {row_number}: standard_id was not found for this tenant")
+            continue
+        if objective_id and not db.query(LearningObjective).filter(LearningObjective.id == objective_id, LearningObjective.tenant_id == tenant_id).first():
+            errors.append(f"Row {row_number}: objective_id was not found for this tenant")
+            continue
+
+        try:
+            score = float(record.get("score") or 0)
+            confidence = float(record.get("confidence") or 0)
+            if not 0 <= score <= 1 or not 0 <= confidence <= 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append(f"Row {row_number}: score and confidence must be decimals from 0 to 1")
+            continue
+
+        evidence = record.get("evidence")
+        if isinstance(evidence, str):
+            try:
+                evidence = json.loads(evidence)
+            except json.JSONDecodeError:
+                evidence = [evidence] if evidence else []
+        evidence = evidence or []
+        imported.append(Alignment(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            standard_id=standard_id,
+            objective_id=objective_id,
+            score=score,
+            confidence=confidence,
+            evidence=evidence,
+            status=str(record.get("status") or "candidate").strip() or "candidate",
+        ))
+
+    if errors:
+        raise HTTPException(status_code=400, detail={"message": "No rows were imported", "errors": errors})
+    if not imported:
+        raise HTTPException(status_code=400, detail="No candidate rows found")
+
+    try:
+        db.add_all(imported)
+        db.commit()
+    except Exception as error:
+        db.rollback()
+        logger.error("Bulk alignment import failed: %s", error)
+        raise HTTPException(status_code=409, detail="Candidates could not be imported; check for duplicates")
+
+    return {
+        "status": "success",
+        "imported_count": len(imported),
+        "message": f"Imported {len(imported)} alignment candidates",
+    }
+
+
 @router.get("/v1/alignments/{alignment_id}", response_model=Dict[str, Any])
 async def get_alignment(
     alignment_id: str,
@@ -510,28 +661,49 @@ async def create_lesson(
 ):
     """Create a new lesson"""
     try:
-        lesson_id = str(uuid.uuid4())
-        lesson_data = {
-            "id": lesson_id,
-            "title": req.title,
-            "description": req.description,
-            "grade": req.grade,
-            "subject": req.subject,
-            "duration": req.duration,
-            "audience": req.audience,
-            "content_ids": req.content_ids,
-            "objective_ids": req.objective_ids or [],
-            "sections": [s.dict() for s in req.sections],
-            "status": "draft",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        }
-        logger.info(f"Created lesson: {lesson_id}")
+        tenant_id = get_current_tenant_id()
+        if not req.curriculum_id:
+            raise HTTPException(status_code=400, detail="curriculum_id is required")
+        curriculum = db.query(Curriculum).filter(
+            Curriculum.id == req.curriculum_id,
+            Curriculum.tenant_id == tenant_id,
+        ).first()
+        if not curriculum:
+            raise HTTPException(status_code=404, detail="Curriculum not found")
+
+        lesson = Lesson(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            curriculum_id=curriculum.id,
+            title=req.title,
+            description=req.description,
+            grade=req.grade,
+            subject=req.subject,
+            duration_minutes=req.duration,
+            status="draft",
+            content={
+                "audience": req.audience,
+                "content_ids": req.content_ids,
+                "objective_ids": req.objective_ids or [],
+                "sections": [s.model_dump() for s in req.sections],
+            },
+        )
+        db.add(lesson)
+        db.commit()
+        db.refresh(lesson)
         return {
             "status": "success",
             "message": "Lesson created successfully",
-            "lesson": lesson_data
+            "lesson": {
+                "id": lesson.id,
+                "curriculum_id": lesson.curriculum_id,
+                "title": lesson.title,
+                "status": lesson.status,
+                "created_at": lesson.created_at.isoformat(),
+            }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating lesson: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

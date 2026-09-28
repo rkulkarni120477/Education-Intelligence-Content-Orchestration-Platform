@@ -18,7 +18,7 @@ export interface DraftSection {
 
 interface DraftGeneratorProps {
   artifactTitle: string
-  artifactType: 'lesson' | 'activity' | 'assessment'
+  artifactType: 'curriculum' | 'lesson' | 'activity' | 'assessment'
   sections: DraftSection[]
   onSectionChange: (sectionId: string, content: string) => void
   onRegenerateSection: (sectionId: string) => void

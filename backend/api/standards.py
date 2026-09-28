@@ -2,10 +2,13 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from database.db import get_db
 from database.models import StandardFramework, Standard
+from auth.tenant_context import get_current_tenant_id
 from pydantic import BaseModel
+import uuid
 
 router = APIRouter(prefix="/v1/standards", tags=["standards"])
 
@@ -53,7 +56,48 @@ class StandardHierarchyResponse(BaseModel):
     hierarchy: List[StandardHierarchyItem]
 
 
+class CreateFrameworkRequest(BaseModel):
+    name: str
+    authority: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    version: Optional[str] = None
+    description: Optional[str] = None
+
+
+class CreateStandardRequest(BaseModel):
+    framework_id: str
+    code: str
+    description: str
+    parent_id: Optional[str] = None
+    grade: Optional[str] = None
+    subject: Optional[str] = None
+    domain: Optional[str] = None
+    strand: Optional[str] = None
+    version: Optional[str] = None
+
+
 # ==================== Framework Endpoints ====================
+
+@router.post("/frameworks", response_model=StandardFrameworkResponse, status_code=201)
+async def create_framework(
+    request: CreateFrameworkRequest,
+    db: Session = Depends(get_db),
+):
+    """Create a tenant-scoped standards framework."""
+    tenant_id = get_current_tenant_id()
+    framework = StandardFramework(
+        id=str(uuid.uuid4()),
+        tenant_id=tenant_id,
+        **request.model_dump(),
+    )
+    db.add(framework)
+    try:
+        db.commit()
+        db.refresh(framework)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="A framework with this name and version already exists")
+    return framework
 
 @router.get("/frameworks", response_model=List[StandardFrameworkResponse])
 async def list_frameworks(db: Session = Depends(get_db)):
@@ -76,6 +120,34 @@ async def get_framework(framework_id: str, db: Session = Depends(get_db)):
 
 
 # ==================== Standards Endpoints ====================
+
+@router.post("", response_model=StandardResponse, status_code=201)
+async def create_standard(
+    request: CreateStandardRequest,
+    db: Session = Depends(get_db),
+):
+    """Create a tenant-scoped standard in an existing framework."""
+    tenant_id = get_current_tenant_id()
+    framework = db.query(StandardFramework).filter(
+        StandardFramework.id == request.framework_id,
+        StandardFramework.tenant_id == tenant_id,
+    ).first()
+    if not framework:
+        raise HTTPException(status_code=404, detail="Framework not found")
+
+    standard = Standard(
+        id=str(uuid.uuid4()),
+        tenant_id=tenant_id,
+        **request.model_dump(),
+    )
+    db.add(standard)
+    try:
+        db.commit()
+        db.refresh(standard)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="A standard with this code already exists in the framework")
+    return standard
 
 @router.get("/frameworks/{framework_id}/standards", response_model=List[StandardResponse])
 async def get_framework_standards(

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from 'react-query'
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query'
 import { apiClient } from './client'
 
 export interface StandardFramework {
@@ -161,12 +161,18 @@ export const useCreateFramework = (): UseMutationResult<
   Omit<StandardFramework, 'id' | 'created_at' | 'updated_at'>,
   unknown
 > => {
+  const queryClient = useQueryClient()
+
   return useMutation(async (data) => {
     const response = await apiClient.post<StandardFramework>(
       '/api/v1/standards/frameworks',
       data
     )
     return response.data
+  }, {
+    onSuccess: async () => {
+      await queryClient.refetchQueries(['frameworks'])
+    },
   })
 }
 
@@ -177,8 +183,17 @@ export const useCreateStandard = (): UseMutationResult<
   Omit<Standard, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>,
   unknown
 > => {
+  const queryClient = useQueryClient()
+
   return useMutation(async (data) => {
     const response = await apiClient.post<Standard>('/api/v1/standards', data)
     return response.data
+  }, {
+    onSuccess: async (_standard, variables) => {
+      await Promise.all([
+        queryClient.refetchQueries(['standards', variables.framework_id]),
+        queryClient.refetchQueries(['standard-hierarchy', variables.framework_id]),
+      ])
+    },
   })
 }
