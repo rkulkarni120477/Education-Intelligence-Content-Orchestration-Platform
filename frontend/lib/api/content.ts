@@ -14,7 +14,7 @@ export interface ContentAsset {
   grade?: string
   subject?: string
   tags?: string[]
-  status: 'uploaded' | 'processing' | 'extracted' | 'review_required' | 'published' | 'failed'
+  status: 'pending' | 'uploaded' | 'processing' | 'extracted' | 'ingested' | 'indexed' | 'review_required' | 'published' | 'failed'
   upload_progress?: number
   extracted_text?: string
   metadata?: Record<string, any>

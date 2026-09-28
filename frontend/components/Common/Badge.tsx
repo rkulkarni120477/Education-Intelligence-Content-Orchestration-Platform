@@ -49,6 +49,9 @@ export const StatusBadge: React.FC<{ status: string; className?: string }> = ({
   className = '',
 }) => {
   const statusStyles: Record<string, { variant: BadgeVariant; label: string }> = {
+    pending: { variant: 'default', label: 'Pending' },
+    ingested: { variant: 'info', label: 'Ingested' },
+    indexed: { variant: 'success', label: 'Indexed' },
     draft: { variant: 'default', label: 'Draft' },
     processing: { variant: 'info', label: 'Processing' },
     review: { variant: 'warning', label: 'Pending Review' },

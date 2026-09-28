@@ -1,11 +1,10 @@
 """API routes for Education Intelligence & Content Orchestration Platform"""
 
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Header
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, UploadFile, File, Form, Depends, Header
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
-from database.vector_db import get_vector_store
-from database.db import get_db
-from database.models import Alignment, User
+from database.db import SessionLocal, get_db
+from database.models import Alignment, Content, User
 from auth.tenant_context import get_current_tenant_id
 # from api.courses import router as courses_router  # DISABLED: Models Course/Unit not defined in database.models
 from services.alignment_service import AlignmentService
@@ -14,13 +13,23 @@ from api.workforce_alignment import router as workforce_alignment_router
 from api.skill_mapping import router as skill_mapping_router
 from api.data_access import router as data_access_router
 from api.agents import router as agents_router
+from services.content_governance import ContentGovernanceAgent
 from sqlalchemy.orm import Session
 from datetime import datetime
+from pathlib import Path
+import json
 import logging
 import uuid
 
 router = APIRouter(prefix="/api", tags=["api"])
 logger = logging.getLogger(__name__)
+
+
+def _get_vector_store(collection_name: str):
+    """Load Chroma only when a vector operation is requested."""
+    from database.vector_db import get_vector_store
+
+    return get_vector_store(collection_name)
 
 # Include standards routes
 router.include_router(standards_router)
@@ -142,6 +151,14 @@ class ApproveReviewRequest(BaseModel):
 class RejectReviewRequest(BaseModel):
     """Request to reject a review"""
     reason: Optional[str] = None
+
+
+class ApproveContentRequest(BaseModel):
+    notes: Optional[str] = None
+
+
+class RejectContentRequest(BaseModel):
+    reason: str
     notes: Optional[str] = None
 
 
@@ -165,7 +182,7 @@ async def health_check():
 async def add_documents(request: DocumentRequest):
     """Add documents to vector store"""
     try:
-        vector_store = get_vector_store(request.collection)
+        vector_store = _get_vector_store(request.collection)
         ids = vector_store.add_documents(
             documents=request.documents,
             metadatas=request.metadatas
@@ -187,7 +204,7 @@ async def add_documents(request: DocumentRequest):
 async def search_documents(request: SearchRequest):
     """Search for documents in vector store"""
     try:
-        vector_store = get_vector_store(request.collection)
+        vector_store = _get_vector_store(request.collection)
         results = vector_store.search(
             query=request.query,
             n_results=request.n_results
@@ -209,7 +226,7 @@ async def search_documents(request: SearchRequest):
 async def get_collection_stats(collection_name: str):
     """Get statistics for a collection"""
     try:
-        vector_store = get_vector_store(collection_name)
+        vector_store = _get_vector_store(collection_name)
         stats = vector_store.get_stats()
         return {
             "status": "success",
@@ -227,7 +244,7 @@ async def get_collection_stats(collection_name: str):
 async def delete_documents(collection_name: str, ids: List[str]):
     """Delete documents from vector store"""
     try:
-        vector_store = get_vector_store(collection_name)
+        vector_store = _get_vector_store(collection_name)
         vector_store.delete_documents(ids)
         return {
             "status": "success",
@@ -251,7 +268,7 @@ async def upload_documents(collection_name: str, file: UploadFile = File(...)):
         # Simple approach: split by newlines
         documents = [line.strip() for line in text.split('\n') if line.strip()]
 
-        vector_store = get_vector_store(collection_name)
+        vector_store = _get_vector_store(collection_name)
         ids = vector_store.add_documents(
             documents=documents,
             metadatas=[{"source": file.filename, "index": i} for i in range(len(documents))]
@@ -869,6 +886,7 @@ async def get_content_jobs(
 
 @router.post("/v1/content/upload", response_model=Dict[str, Any])
 async def upload_content(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
@@ -878,15 +896,64 @@ async def upload_content(
     x_tenant_id: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Upload a content asset and kick off its ingestion job"""
+    """Save a content asset and process it after the upload response."""
+    content = None
+    file_path = None
     try:
         content_id = str(uuid.uuid4())
         job_id = str(uuid.uuid4())
-        now = datetime.now().isoformat()
+        tenant_id = get_current_tenant_id()
 
+        upload_dir = Path(__file__).resolve().parent.parent / "data" / "uploads" / "content"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        suffix = Path(file.filename or "upload").suffix.lower()
+        file_path = upload_dir / f"{content_id}{suffix}"
+        with file_path.open("wb") as output:
+            while chunk := await file.read(1024 * 1024):
+                output.write(chunk)
+
+        try:
+            parsed_tags = json.loads(tags) if tags else []
+            if not isinstance(parsed_tags, list):
+                parsed_tags = [str(parsed_tags)]
+        except json.JSONDecodeError:
+            parsed_tags = [tag.strip() for tag in tags.split(",") if tag.strip()] if tags else []
+
+        content = Content(
+            id=content_id,
+            tenant_id=tenant_id,
+            title=title,
+            content_type="document",
+            source=str(file_path),
+            content_metadata={
+                "description": description,
+                "subject": subject,
+                "grade": grade,
+                "tags": parsed_tags,
+                "original_filename": file.filename,
+                "mime_type": file.content_type,
+                "file_path": str(file_path),
+            },
+            status="pending",
+        )
+        db.add(content)
+        db.commit()
+        db.refresh(content)
+
+        background_tasks.add_task(
+            _process_content_upload,
+            content_id,
+            tenant_id,
+            title,
+            str(file_path),
+            suffix,
+            file.content_type,
+        )
+
+        now = datetime.utcnow().isoformat()
         job = {
             "id": job_id,
-            "tenant_id": x_tenant_id or "default",
+            "tenant_id": tenant_id,
             "content_id": content_id,
             "status": "queued",
             "progress": 0,
@@ -895,7 +962,7 @@ async def upload_content(
             "description": description,
             "subject": subject,
             "grade": grade,
-            "tags": tags.split(",") if tags else [],
+            "tags": parsed_tags,
             "file_name": file.filename,
             "mime_type": file.content_type,
             "started_at": None,
@@ -910,6 +977,337 @@ async def upload_content(
             "job": job,
         }
     except Exception as e:
+        db.rollback()
+        if file_path and file_path.exists():
+            file_path.unlink()
+        logger.error(f"Error uploading content: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+def _process_content_upload(
+    content_id: str,
+    tenant_id: str,
+    title: str,
+    file_path: str,
+    suffix: str,
+    mime_type: Optional[str],
+) -> None:
+    """Extract and index an uploaded asset without blocking the upload request."""
+    db = SessionLocal()
+    content = None
+    try:
+        content = db.query(Content).filter(
+            Content.id == content_id,
+            Content.tenant_id == tenant_id,
+        ).first()
+        if not content:
+            raise ValueError(f"Content {content_id} not found")
+
+        extracted_text = ""
+        if suffix == ".pdf":
+            from pypdf import PdfReader
+
+            reader = PdfReader(file_path)
+            extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        elif mime_type == "text/plain":
+            extracted_text = Path(file_path).read_text(encoding="utf-8")
+
+        status_value = "ingested"
+        if extracted_text:
+            content.raw_content = extracted_text
+            chunks = [
+                extracted_text[index:index + 1000]
+                for index in range(0, len(extracted_text), 900)
+            ]
+            vector_store = _get_vector_store("academian_content")
+            vector_store.add_documents(
+                documents=chunks,
+                metadatas=[{
+                    "content_id": content_id,
+                    "tenant_id": tenant_id,
+                    "title": title,
+                    "source": file_path,
+                    "chunk_index": index,
+                } for index in range(len(chunks))],
+                ids=[f"{content_id}:{index}" for index in range(len(chunks))],
+            )
+            status_value = "indexed"
+
+        content.status = status_value
+        if status_value == "indexed":
+            governance = ContentGovernanceAgent.review(content)
+            content.content_metadata = {
+                **(content.content_metadata or {}),
+                "governance": governance,
+            }
+            content.status = "review_required"
+        db.commit()
+        logger.info(f"Processed uploaded content {content_id} with status {content.status}")
+    except Exception as e:
+        db.rollback()
+        content = db.query(Content).filter(Content.id == content_id).first()
+        if content:
+            content.status = "failed"
+            content.content_metadata = {
+                **(content.content_metadata or {}),
+                "processing_error": str(e),
+            }
+            db.commit()
+        logger.error(f"Error processing uploaded content {content_id}: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.post("/v1/content/{content_id}/governance-review", response_model=Dict[str, Any])
+async def review_content_governance(
+    content_id: str,
+    db: Session = Depends(get_db),
+):
+    """Run governance checks and recommend approval for indexed content."""
+    tenant_id = get_current_tenant_id()
+    content = db.query(Content).filter(
+        Content.id == content_id,
+        Content.tenant_id == tenant_id,
+    ).first()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
+    if content.status not in {"indexed", "review_required"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Content must be indexed before governance review",
+        )
+
+    governance = ContentGovernanceAgent.review(content)
+    content.content_metadata = {
+        **(content.content_metadata or {}),
+        "governance": governance,
+    }
+    content.status = "review_required"
+    db.commit()
+    db.refresh(content)
+    return {
+        "status": "success",
+        "content_id": content.id,
+        "content_status": content.status,
+        "governance": governance,
+    }
+
+
+@router.post("/v1/content/{content_id}/approve", response_model=Dict[str, Any])
+async def approve_content(
+    content_id: str,
+    request: ApproveContentRequest = ApproveContentRequest(),
+    db: Session = Depends(get_db),
+):
+    """Approve governed content and publish it to the library."""
+    tenant_id = get_current_tenant_id()
+    content = db.query(Content).filter(
+        Content.id == content_id,
+        Content.tenant_id == tenant_id,
+    ).first()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
+    if content.status != "review_required":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Content must be in review_required status before approval",
+        )
+
+    content.status = "published"
+    content.content_metadata = {
+        **(content.content_metadata or {}),
+        "approval": {
+            "decision": "approved",
+            "notes": request.notes,
+            "approved_at": datetime.utcnow().isoformat(),
+        },
+    }
+    db.commit()
+    db.refresh(content)
+    return {
+        "id": content.id,
+        "title": content.title,
+        "content_type": content.content_type,
+        "status": content.status,
+        "version": content.version,
+        "created_at": content.created_at.isoformat() if content.created_at else None,
+        "updated_at": content.updated_at.isoformat() if content.updated_at else None,
+    }
+
+
+@router.post("/v1/content/{content_id}/reject", response_model=Dict[str, Any])
+async def reject_content(
+    content_id: str,
+    request: RejectContentRequest,
+    db: Session = Depends(get_db),
+):
+    """Reject governed content and remove its stored file and vectors."""
+    tenant_id = get_current_tenant_id()
+    content = db.query(Content).filter(
+        Content.id == content_id,
+        Content.tenant_id == tenant_id,
+    ).first()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
+    if content.status != "review_required":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Content must be in review_required status before rejection",
+        )
+
+    try:
+        vector_store = _get_vector_store("academian_content")
+        vector_result = vector_store.collection.get(where={"content_id": content_id})
+        vector_ids = vector_result.get("ids", [])
+        if vector_ids:
+            vector_store.delete_documents(vector_ids)
+    except Exception as error:
+        logger.warning("Could not delete vectors for rejected content %s: %s", content_id, error)
+
+    if content.source:
+        source_path = Path(content.source)
+        if source_path.is_file():
+            source_path.unlink()
+
+    rejection = {
+        "decision": "rejected",
+        "reason": request.reason,
+        "rejected_at": datetime.utcnow().isoformat(),
+    }
+    db.delete(content)
+    db.commit()
+    return {
+        "status": "success",
+        "message": "Content rejected and deleted",
+        "content_id": content_id,
+        "rejection": rejection,
+    }
+
+
+@router.post("/v1/content/upload-legacy", response_model=Dict[str, Any])
+async def upload_content_legacy(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    subject: Optional[str] = Form(None),
+    grade: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    x_tenant_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Upload a content asset and kick off its ingestion job"""
+    content = None
+    try:
+        content_id = str(uuid.uuid4())
+        job_id = str(uuid.uuid4())
+        tenant_id = get_current_tenant_id()
+
+        upload_dir = Path(__file__).resolve().parent.parent / "data" / "uploads" / "content"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        suffix = Path(file.filename or "upload").suffix.lower()
+        file_path = upload_dir / f"{content_id}{suffix}"
+        with file_path.open("wb") as output:
+            while chunk := await file.read(1024 * 1024):
+                output.write(chunk)
+
+        try:
+            parsed_tags = json.loads(tags) if tags else []
+            if not isinstance(parsed_tags, list):
+                parsed_tags = [str(parsed_tags)]
+        except json.JSONDecodeError:
+            parsed_tags = [tag.strip() for tag in tags.split(",") if tag.strip()] if tags else []
+
+        metadata = {
+            "description": description,
+            "subject": subject,
+            "grade": grade,
+            "tags": parsed_tags,
+            "original_filename": file.filename,
+            "mime_type": file.content_type,
+            "file_path": str(file_path),
+        }
+        content = Content(
+            id=content_id,
+            tenant_id=tenant_id,
+            title=title,
+            content_type="document",
+            source=str(file_path),
+            content_metadata=metadata,
+            status="pending",
+        )
+        db.add(content)
+        db.commit()
+        db.refresh(content)
+
+        status_value = "ingested"
+        extracted_text = ""
+        if suffix == ".pdf":
+            from pypdf import PdfReader
+
+            reader = PdfReader(str(file_path))
+            extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        elif file.content_type == "text/plain":
+            extracted_text = file_path.read_text(encoding="utf-8")
+
+        if extracted_text:
+            content.raw_content = extracted_text
+            chunks = [
+                extracted_text[index:index + 1000]
+                for index in range(0, len(extracted_text), 900)
+            ]
+            vector_store = _get_vector_store("academian_content")
+            vector_store.add_documents(
+                documents=chunks,
+                metadatas=[{
+                    "content_id": content_id,
+                    "tenant_id": tenant_id,
+                    "title": title,
+                    "source": str(file_path),
+                    "chunk_index": index,
+                } for index in range(len(chunks))],
+                ids=[f"{content_id}:{index}" for index in range(len(chunks))],
+            )
+            status_value = "indexed"
+
+        content.status = status_value
+        db.commit()
+        db.refresh(content)
+
+        job = {
+            "id": job_id,
+            "tenant_id": tenant_id,
+            "content_id": content_id,
+            "status": "completed",
+            "progress": 100,
+            "stage": status_value,
+            "title": title,
+            "description": description,
+            "subject": subject,
+            "grade": grade,
+            "tags": tags.split(",") if tags else [],
+            "file_name": file.filename,
+            "mime_type": file.content_type,
+            "started_at": content.created_at.isoformat(),
+            "completed_at": datetime.utcnow().isoformat(),
+            "created_at": content.created_at.isoformat(),
+            "updated_at": content.updated_at.isoformat(),
+        }
+
+        return {
+            "status": "success",
+            "message": "Content uploaded and processed successfully",
+            "job": job,
+        }
+    except Exception as e:
+        db.rollback()
+        if content is not None:
+            content.status = "failed"
+            content.content_metadata = {
+                **(content.content_metadata or {}),
+                "processing_error": str(e),
+            }
+            db.add(content)
+            db.commit()
         logger.error(f"Error uploading content: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

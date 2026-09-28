@@ -175,7 +175,7 @@ class Content(Base):
     source = Column(String(255))
     raw_content = Column(Text)
     content_metadata = Column(JSON)
-    status = Column(String(50), default="pending")  # pending, ingested, indexed, archived
+    status = Column(String(50), default="pending")  # pending, processing, ingested, indexed, review_required, published, archived
     version = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

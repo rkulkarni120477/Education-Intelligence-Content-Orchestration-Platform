@@ -34,8 +34,12 @@ export default function ContentLibraryPage() {
   const handleApprove = async (assetId: string) => {
     try {
       await approveMutation.mutateAsync({ id: assetId })
-      // Refresh data
-      listQuery.refetch()
+      if (searchQuery) {
+        await searchQuery_.refetch()
+      } else {
+        await listQuery.refetch()
+      }
+      setSelectedAsset(null)
       setShowPreview(false)
     } catch (error: any) {
       console.error('Approve failed:', error.message)
@@ -45,8 +49,12 @@ export default function ContentLibraryPage() {
   const handleReject = async (assetId: string) => {
     try {
       await rejectMutation.mutateAsync({ id: assetId, reason: 'Rejected by user' })
-      // Refresh data
-      listQuery.refetch()
+      if (searchQuery) {
+        await searchQuery_.refetch()
+      } else {
+        await listQuery.refetch()
+      }
+      setSelectedAsset(null)
       setShowPreview(false)
     } catch (error: any) {
       console.error('Reject failed:', error.message)
@@ -122,7 +130,7 @@ export default function ContentLibraryPage() {
         <Card variant="outlined">
           <Card.Body className="text-center">
             <p className="text-3xl font-bold text-amber-600">
-              {displayAssets.filter(a => a.status === 'uploaded' || a.status === 'extracted').length}
+              {displayAssets.filter(a => ['pending', 'uploaded', 'processing', 'extracted', 'ingested'].includes(a.status)).length}
             </p>
             <p className="text-sm text-slate-600 mt-2">Processing</p>
           </Card.Body>

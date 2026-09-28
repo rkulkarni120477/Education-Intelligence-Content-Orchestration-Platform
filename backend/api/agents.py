@@ -129,6 +129,12 @@ REGISTERED_AGENTS = {
         "agent_type": "compliance",
         "status": "active",
     },
+    "content_governance": {
+        "name": "Content Governance Agent",
+        "description": "Checks indexed content quality and recommends human approval",
+        "agent_type": "compliance",
+        "status": "active",
+    },
     "persist_artifacts": {
         "name": "Data Persister",
         "description": "Persists workflow results to database",
