@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from database.db import get_db
-from auth.tenant_context import get_current_tenant_id
 from services.requirements_extraction import RequirementsExtractionService
 from services.skill_mapping import SkillMappingService
 from services.recommendations import RecommendationsService
@@ -68,7 +67,6 @@ SAMPLE_DATA = {
 @router.get("/run-all", response_model=Dict[str, Any])
 async def run_all_tests(
     db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_current_tenant_id),
 ):
     """
     Run all agent tests and return results.
