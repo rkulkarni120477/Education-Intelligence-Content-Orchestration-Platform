@@ -11,9 +11,9 @@ import base64
 
 settings = get_settings()
 
-# Use PBKDF2 instead of bcrypt due to compatibility issues
+# Support multiple password hashing schemes for compatibility
 from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+pwd_context = CryptContext(schemes=["scrypt", "pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 
 class TokenData(BaseModel):

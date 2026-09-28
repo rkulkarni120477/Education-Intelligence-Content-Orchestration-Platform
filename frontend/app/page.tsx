@@ -1,25 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-
-const VALID_CREDENTIALS = {
-  email: 'rkulkarni@academian.com',
-  password: 'P@ssw0rd'
-}
+import { useAuthStore } from '@/lib/stores/auth'
 
 export default function LoginPage() {
+  const login = useAuthStore((state) => state.login)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    console.log('Login attempt:', { email, password: '***' })
-    console.log('Valid credentials:', VALID_CREDENTIALS.email)
 
     if (!email.trim() || !password.trim()) {
       setError('Please enter both email and password.')
@@ -27,32 +21,11 @@ export default function LoginPage() {
       return
     }
 
-    if (email.trim() === VALID_CREDENTIALS.email && password === VALID_CREDENTIALS.password) {
-      try {
-        const authData = {
-          email: email.trim(),
-          timestamp: new Date().toISOString(),
-          authenticated: true
-        }
-        console.log('Setting auth token:', authData)
-        localStorage.setItem('auth_token', JSON.stringify(authData))
-        const storedData = localStorage.getItem('auth_token')
-        console.log('Verified auth token in localStorage:', storedData)
-        console.log('Auth token set, redirecting to /home...')
-        setTimeout(() => {
-          console.log('Executing redirect to /home')
-          window.location.href = '/home'
-        }, 100)
-      } catch (err) {
-        console.error('Error setting auth token:', err)
-        setError('Failed to save session. Please try again.')
-        setLoading(false)
-      }
-    } else {
-      console.log('Credentials mismatch')
-      console.log('Email match:', email.trim() === VALID_CREDENTIALS.email)
-      console.log('Password match:', password === VALID_CREDENTIALS.password)
-      setError('Invalid email or password.')
+    try {
+      await login(email.trim(), password)
+      window.location.href = '/home'
+    } catch (err: any) {
+      setError(err.message || 'Sign in failed. Check your email and password.')
       setLoading(false)
     }
   }

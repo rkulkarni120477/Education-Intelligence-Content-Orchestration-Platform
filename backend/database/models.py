@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text, JSON, ForeignKey, Table, Float, Enum, UniqueConstraint
+from sqlalchemy import Column, String, Integer, Date, DateTime, Boolean, Text, JSON, ForeignKey, Table, Float, Enum, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -53,6 +53,17 @@ class User(Base):
     email = Column(String(255), nullable=False, index=True)
     username = Column(String(255), nullable=False, index=True)
     full_name = Column(String(255))
+    first_name = Column(String(100))
+    last_name = Column(String(100))
+    age = Column(Integer)
+    date_of_birth = Column(Date)
+    city = Column(String(150))
+    state = Column(String(150))
+    country = Column(String(100))
+    address = Column(Text)
+    zip_code = Column(String(20))
+    mobile_number = Column(String(30))
+    profile_photo = Column(String(500), nullable=True)  # Path or URL to profile photo
     hashed_password = Column(String(255), nullable=False)
     role = Column(String(50), default="user")  # admin, editor, viewer, user
     is_active = Column(Boolean, default=True)

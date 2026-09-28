@@ -127,6 +127,36 @@ export const useCandidateAlignments = (
   )
 }
 
+// Fetch approved alignments
+export const useApprovedAlignments = (
+  contentId?: string,
+  frameworkId?: string
+): UseQueryResult<Alignment[], Error> => {
+  return useQuery(
+    ['approved-alignments', contentId, frameworkId],
+    async () => {
+      const params = new URLSearchParams()
+
+      // If contentId provided, filter by that source
+      if (contentId) {
+        params.append('source_type', 'content')
+        params.append('source_id', contentId)
+      }
+
+      params.append('status', 'approved')
+      if (frameworkId) params.append('framework_id', frameworkId)
+
+      const response = await apiClient.get<{ alignments: Alignment[] } | Alignment[]>(
+        `/api/v1/alignments?${params.toString()}`
+      )
+      return Array.isArray(response.data) ? response.data : (response.data.alignments || [])
+    },
+    {
+      staleTime: 2 * 60 * 1000,
+    }
+  )
+}
+
 // Calculate alignment coverage
 export const useAlignmentCoverage = (
   curriculumId: string,

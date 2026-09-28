@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import uuid
 import asyncio
 from pydantic import BaseModel
@@ -90,8 +90,19 @@ async def _run_project_workflow(
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
-    init_db()
-    logger.info("Database initialized successfully")
+    try:
+        import os
+        import time
+        db_path = settings.DATABASE_URL.replace("sqlite:///", "").replace("sqlite:///../data/", "")
+        # Only initialize if database doesn't exist
+        if not os.path.exists(db_path):
+            logger.info(f"Initializing new database: {db_path}")
+            init_db()
+        else:
+            logger.info(f"Database already exists: {db_path}, skipping initialization")
+    except Exception as e:
+        logger.warning(f"Database initialization warning (non-blocking): {str(e)}")
+    logger.info("Startup event completed")
 
 
 # ==================== Health Check ====================
@@ -137,8 +148,35 @@ class ChangePasswordRequest(BaseModel):
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    age: Optional[int] = None
+    date_of_birth: Optional[date] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    address: Optional[str] = None
+    zip_code: Optional[str] = None
+    mobile_number: Optional[str] = None
     language: Optional[str] = None
     timezone: Optional[str] = None
+
+
+def _user_profile_fields(user: User) -> Dict[str, Any]:
+    return {
+        "full_name": user.full_name,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "age": user.age,
+        "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+        "city": user.city,
+        "state": user.state,
+        "country": user.country,
+        "address": user.address,
+        "zip_code": user.zip_code,
+        "mobile_number": user.mobile_number,
+        "profile_photo": user.profile_photo,
+    }
 
 
 class UserPreferencesUpdate(BaseModel):
@@ -266,7 +304,7 @@ async def register(req: RegisterRequest, db: Session = Depends(get_db)):
         "user_id": user.id,
         "email": user.email,
         "username": user.username,
-        "full_name": user.full_name,
+        **_user_profile_fields(user),
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": expires_in
@@ -276,30 +314,39 @@ async def register(req: RegisterRequest, db: Session = Depends(get_db)):
 @app.post("/api/auth/login")
 async def login(req: LoginRequest, db: Session = Depends(get_db)):
     """Login user"""
-    user = authenticate_user(db, req.email, req.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        user = authenticate_user(db, req.email, req.password)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account is inactive")
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Account is inactive")
 
-    # Update last login
-    update_last_login(db, user)
+        # Update last login
+        update_last_login(db, user)
 
-    access_token, expires_in = create_access_token(
-        data={"sub": user.id, "email": user.email}
-    )
+        access_token, expires_in = create_access_token(
+            data={"sub": user.id, "email": user.email}
+        )
 
-    return {
-        "user_id": user.id,
-        "email": user.email,
-        "username": user.username,
-        "full_name": user.full_name,
-        "is_admin": user.is_admin,
-        "access_token": access_token,
-        "token_type": "bearer",
-        "expires_in": expires_in
-    }
+        return {
+            "user_id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "tenant_id": user.tenant_id,
+            "organization_id": user.organization_id,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            **_user_profile_fields(user),
+            "is_admin": user.is_admin,
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": expires_in
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/auth/forgot-password")
@@ -381,7 +428,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
-        "full_name": current_user.full_name,
+        **_user_profile_fields(current_user),
         "is_admin": current_user.is_admin,
         "email_verified": current_user.email_verified,
         "created_at": current_user.created_at.isoformat()
@@ -399,12 +446,47 @@ async def get_profile(current_user: User = Depends(get_current_user), db: Sessio
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
-        "full_name": current_user.full_name,
+        **_user_profile_fields(current_user),
         "is_admin": current_user.is_admin,
         "email_verified": current_user.email_verified,
         "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
         "created_at": current_user.created_at.isoformat(),
         "preferences": preferences.to_dict() if preferences else None
+    }
+
+
+@app.post("/api/users/profile/photo")
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Upload profile photo"""
+    import os
+
+    # Create uploads directory if it doesn't exist
+    uploads_dir = "data/uploads/profiles"
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    # Save file with user ID as filename
+    filename = f"{current_user.id}_{file.filename}"
+    file_path = os.path.join(uploads_dir, filename)
+
+    # Save file
+    contents = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    # Update user profile photo path
+    current_user.profile_photo = file_path
+    db.commit()
+    db.refresh(current_user)
+
+    logger.info(f"Profile photo uploaded for user {current_user.id}")
+
+    return {
+        "message": "Profile photo uploaded successfully",
+        "profile_photo": current_user.profile_photo
     }
 
 
@@ -415,8 +497,13 @@ async def update_profile(
     db: Session = Depends(get_db)
 ):
     """Update user profile"""
-    if req.full_name:
-        current_user.full_name = req.full_name
+    profile_updates = req.dict(exclude_unset=True)
+    for field in (
+        "full_name", "first_name", "last_name", "age", "date_of_birth", "city",
+        "state", "country", "address", "zip_code", "mobile_number"
+    ):
+        if field in profile_updates:
+            setattr(current_user, field, profile_updates[field])
 
     if req.email and req.email != current_user.email:
         # Check if email already exists
@@ -433,8 +520,21 @@ async def update_profile(
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
-        "full_name": current_user.full_name
+        **_user_profile_fields(current_user)
     }
+
+
+@app.get("/api/users/profile/photo/{user_id}")
+async def get_profile_photo(user_id: str, db: Session = Depends(get_db)):
+    """Get user profile photo"""
+    import os
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.profile_photo:
+        raise HTTPException(status_code=404, detail="Profile photo not found")
+    file_path = user.profile_photo
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Profile photo file not found")
+    return FileResponse(file_path, media_type="image/png")
 
 
 @app.get("/api/users/preferences")

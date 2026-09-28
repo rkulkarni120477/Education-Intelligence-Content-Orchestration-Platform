@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
 import {
   useCandidateAlignments,
+  useApprovedAlignments,
   useApproveAlignment,
   useRejectAlignment,
   Alignment,
@@ -27,16 +28,24 @@ export default function AlignmentWorkspacePage() {
   const frameworkId = searchParams.get('framework_id')
 
   const [selectedAlignmentId, setSelectedAlignmentId] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<'candidates' | 'approved'>('candidates')
 
   // Fetch candidate alignments (all candidates if no specific content/standard)
   const candidatesQuery = useCandidateAlignments(contentId || standardId || undefined, frameworkId || undefined)
+  const approvedQuery = useApprovedAlignments(contentId || standardId || undefined, frameworkId || undefined)
   const approveMutation = useApproveAlignment()
   const rejectMutation = useRejectAlignment()
 
   if (!isAuthenticated) return null
 
   const candidates = candidatesQuery.data || []
-  const selectedAlignment = candidates.find((a) => a.id === selectedAlignmentId) || candidates[0]
+  const approved = approvedQuery.data || []
+
+  // Show appropriate list based on active tab
+  const currentList = activeTab === 'candidates' ? candidates : approved
+  const currentQuery = activeTab === 'candidates' ? candidatesQuery : approvedQuery
+
+  const selectedAlignment = currentList.find((a) => a.id === selectedAlignmentId) || currentList[0]
 
   const handleSelectAlignment = (alignment: Alignment) => {
     setSelectedAlignmentId(alignment.id)
@@ -87,13 +96,20 @@ export default function AlignmentWorkspacePage() {
     console.log('Edit alignment:', selectedAlignmentId)
   }
 
-  // Statistics
-  const approved = candidates.filter((a) => a.status === 'approved').length
-  const rejected = candidates.filter((a) => a.status === 'rejected').length
-  const pending = candidates.filter((a) => a.status === 'candidate').length
-  const avgConfidence = candidates.length > 0
+  // Statistics for all alignments
+  const allAlignments = [...candidates, ...approved]
+  const approvedCount = approved.length
+  const rejectedCount = 0 // TODO: fetch rejected alignments if needed
+  const pendingCount = candidates.length
+  const avgConfidenceCandidates = candidates.length > 0
     ? Math.round((candidates.reduce((sum, a) => sum + a.confidence, 0) / candidates.length) * 100)
     : 0
+  const avgConfidenceApproved = approved.length > 0
+    ? Math.round((approved.reduce((sum, a) => sum + a.confidence, 0) / approved.length) * 100)
+    : 0
+
+  // Show confidence for current tab
+  const avgConfidence = activeTab === 'candidates' ? avgConfidenceCandidates : avgConfidenceApproved
 
   return (
     <div className="space-y-6">
@@ -127,28 +143,28 @@ export default function AlignmentWorkspacePage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-2xl font-bold text-[#1E40AF]">{candidates.length}</p>
+            <p className="text-2xl font-bold text-[#1E40AF]">{pendingCount}</p>
             <p className="text-xs text-slate-600 mt-1">Candidates</p>
           </Card.Body>
         </Card>
 
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-2xl font-bold text-green-600">{approved}</p>
+            <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
             <p className="text-xs text-slate-600 mt-1">Approved</p>
           </Card.Body>
         </Card>
 
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-2xl font-bold text-red-600">{rejected}</p>
+            <p className="text-2xl font-bold text-red-600">{rejectedCount}</p>
             <p className="text-xs text-slate-600 mt-1">Rejected</p>
           </Card.Body>
         </Card>
 
         <Card variant="outlined">
           <Card.Body className="text-center">
-            <p className="text-2xl font-bold text-amber-600">{pending}</p>
+            <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
             <p className="text-xs text-slate-600 mt-1">Pending</p>
           </Card.Body>
         </Card>
@@ -161,32 +177,66 @@ export default function AlignmentWorkspacePage() {
         </Card>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-gray-200">
+        <button
+          onClick={() => {
+            setActiveTab('candidates')
+            setSelectedAlignmentId('')
+          }}
+          className={`pb-3 px-4 font-semibold transition-colors ${
+            activeTab === 'candidates'
+              ? 'text-[#1E40AF] border-b-2 border-[#1E40AF]'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          📋 Pending Candidates ({pendingCount})
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('approved')
+            setSelectedAlignmentId('')
+          }}
+          className={`pb-3 px-4 font-semibold transition-colors ${
+            activeTab === 'approved'
+              ? 'text-[#1E40AF] border-b-2 border-[#1E40AF]'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          ✓ Approved ({approvedCount})
+        </button>
+      </div>
+
       {/* Main Workspace */}
-      {candidatesQuery.isLoading ? (
+      {currentQuery.isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <Skeleton className="lg:col-span-1 h-96 rounded-lg" />
           <Skeleton className="lg:col-span-2 h-96 rounded-lg" />
           <Skeleton className="lg:col-span-1 h-96 rounded-lg" />
         </div>
-      ) : candidates.length === 0 ? (
+      ) : currentList.length === 0 ? (
         <Card variant="outlined">
           <Card.Body>
             <p className="text-center text-slate-600 py-12">
-              No candidate alignments found
+              {activeTab === 'candidates'
+                ? 'No candidate alignments waiting for review'
+                : 'No approved alignments yet'}
             </p>
           </Card.Body>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Candidates List */}
+          {/* Candidates/Approved List */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-bold text-[#0F172A] mb-3">Candidates</h3>
+            <h3 className="text-lg font-bold text-[#0F172A] mb-3">
+              {activeTab === 'candidates' ? '📋 Candidates' : '✓ Approved'}
+            </h3>
             <div className="max-h-96 overflow-auto">
               <CandidatesList
-                candidates={candidates}
+                candidates={currentList}
                 selectedId={selectedAlignmentId}
                 onSelect={handleSelectAlignment}
-                isLoading={candidatesQuery.isLoading}
+                isLoading={currentQuery.isLoading}
               />
             </div>
           </div>
@@ -197,39 +247,69 @@ export default function AlignmentWorkspacePage() {
             <div className="max-h-96 overflow-auto">
               <EvidenceInspector
                 alignment={selectedAlignment || null}
-                isLoading={candidatesQuery.isLoading}
+                isLoading={currentQuery.isLoading}
               />
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Only show for candidates */}
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-bold text-[#0F172A] mb-3">Decision</h3>
-            <ActionButtons
-              alignmentId={selectedAlignment?.id || ''}
-              isLoading={approveMutation.isLoading || rejectMutation.isLoading}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onDefer={handleDefer}
-              onEdit={handleEdit}
-            />
+            <h3 className="text-lg font-bold text-[#0F172A] mb-3">
+              {activeTab === 'candidates' ? 'Decision' : 'Status'}
+            </h3>
+            {activeTab === 'candidates' ? (
+              <ActionButtons
+                alignmentId={selectedAlignment?.id || ''}
+                isLoading={approveMutation.isLoading || rejectMutation.isLoading}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onDefer={handleDefer}
+                onEdit={handleEdit}
+              />
+            ) : (
+              <Card variant="outlined">
+                <Card.Body className="text-center">
+                  <p className="text-2xl font-bold text-green-600">✓</p>
+                  <p className="text-sm text-slate-600 mt-2">Approved</p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Confidence: {Math.round((selectedAlignment?.confidence || 0) * 100)}%
+                  </p>
+                </Card.Body>
+              </Card>
+            )}
           </div>
         </div>
       )}
 
       {/* Workflow Tips */}
-      <Card variant="default" className="bg-blue-50 border-blue-200">
-        <Card.Body>
-          <p className="font-bold text-blue-800 mb-2">💡 Alignment Review Workflow</p>
-          <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Review the ranked candidates (sorted by confidence)</li>
-            <li>Read the evidence and rationale for each match</li>
-            <li>Use high-confidence (80%+) alignments as a guide</li>
-            <li>Approve valid alignments, reject incorrect ones, or defer uncertain ones</li>
-            <li>Edit if you disagree with the mapping but still want to align</li>
-          </ol>
-        </Card.Body>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card variant="default" className="bg-blue-50 border-blue-200">
+          <Card.Body>
+            <p className="font-bold text-blue-800 mb-2">💡 Candidate Review Workflow</p>
+            <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+              <li>Review ranked candidates (highest confidence first)</li>
+              <li>Read the evidence and rationale for each match</li>
+              <li>Use high-confidence (80%+) alignments as a guide</li>
+              <li>Approve valid alignments, reject incorrect ones, or defer uncertain ones</li>
+              <li>Edit if you disagree with the mapping but still want to align</li>
+            </ol>
+          </Card.Body>
+        </Card>
+
+        <Card variant="default" className="bg-green-50 border-green-200">
+          <Card.Body>
+            <p className="font-bold text-green-800 mb-2">✓ Approved Alignments</p>
+            <p className="text-sm text-green-700 mb-3">
+              View all approved alignments in the <strong>"Approved"</strong> tab.
+            </p>
+            <div className="text-sm text-green-700 space-y-1">
+              <p>✓ Total approved: <strong>{approvedCount}</strong></p>
+              <p>✓ Avg confidence: <strong>{avgConfidenceApproved}%</strong></p>
+              <p>✓ Ready for use in lessons and curriculum</p>
+            </div>
+          </Card.Body>
+        </Card>
+      </div>
     </div>
   )
 }

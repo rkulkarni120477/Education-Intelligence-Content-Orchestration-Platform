@@ -6,6 +6,8 @@ import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
 import { useProcessingJobs, useContentAssets } from '@/lib/api/content'
 import { useAlignments } from '@/lib/api/alignments'
 import { useLessons } from '@/lib/api/lessons'
+import { useFrameworks, useStandards } from '@/lib/api/standards'
+import { useCurricula } from '@/lib/api/curriculum'
 import { Card } from '@/components/Common/Card'
 import { Button } from '@/components/Common/Button'
 import { StatusBadge } from '@/components/Common/Badge'
@@ -19,6 +21,8 @@ export default function HomePage() {
   const contentQuery = useContentAssets(1, 5, { status: 'review_required' })
   const alignmentsQuery = useAlignments('content')
   const lessonsQuery = useLessons()
+  const frameworksQuery = useFrameworks()
+  const curriculaQuery = useCurricula()
 
   if (!isAuthenticated) return null
 
@@ -26,12 +30,14 @@ export default function HomePage() {
   const reviewItems = contentQuery.data?.items || []
   const recentAlignments = alignmentsQuery.data?.slice(0, 5) || []
   const recentLessons = lessonsQuery.data?.slice(0, 5) || []
+  const frameworks = frameworksQuery.data || []
+  const curricula = curriculaQuery.data || []
 
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-[#1E40AF] to-[#0F172A] text-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name || user?.email}!</h1>
+        <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.first_name || user?.name || user?.email}!</h1>
         <p className="text-[#E0F2FE] text-lg">
           {user?.role ? `You are logged in as ${user.role.replace(/_/g, ' ')}` : ''}
         </p>
@@ -201,23 +207,103 @@ export default function HomePage() {
             </Card>
           )}
         </div>
+
+        {/* Standards Frameworks */}
+        <div>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">📋 Standards Frameworks</h3>
+          {frameworksQuery.isLoading ? (
+            <Skeleton className="h-48" />
+          ) : frameworks.length > 0 ? (
+            <Card variant="outlined">
+              <Card.Body className="space-y-3">
+                {frameworks.slice(0, 4).map((framework) => (
+                  <Link key={framework.id} href="/standards" className="block">
+                    <div className="pb-3 border-b border-[#3B82F6] last:border-b-0 last:pb-0 hover:bg-[#FFFFFF] -mx-4 px-4 py-3 rounded cursor-pointer transition">
+                      <p className="font-medium text-[#0F172A] hover:text-[#1E40AF]">
+                        {framework.name}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">{framework.authority}</p>
+                    </div>
+                  </Link>
+                ))}
+                <Link href="/standards" className="text-sm text-[#1E40AF] font-medium hover:text-[#0F172A]">
+                  View all ({frameworks.length})
+                </Link>
+              </Card.Body>
+            </Card>
+          ) : (
+            <Card variant="outlined">
+              <Card.Body>
+                <p className="text-slate-600 text-center">No standards frameworks available</p>
+              </Card.Body>
+            </Card>
+          )}
+        </div>
+
+        {/* Curriculum */}
+        <div>
+          <h3 className="text-xl font-bold text-[#0F172A] mb-4">📖 Curriculum</h3>
+          {curriculaQuery.isLoading ? (
+            <Skeleton className="h-48" />
+          ) : curricula.length > 0 ? (
+            <Card variant="outlined">
+              <Card.Body className="space-y-3">
+                {curricula.slice(0, 4).map((curriculum) => (
+                  <Link key={curriculum.id} href="/curriculum" className="block">
+                    <div className="pb-3 border-b border-[#3B82F6] last:border-b-0 last:pb-0 hover:bg-[#FFFFFF] -mx-4 px-4 py-3 rounded cursor-pointer transition">
+                      <p className="font-medium text-[#0F172A] hover:text-[#1E40AF]">
+                        {curriculum.name}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {curriculum.grade ? `Grade ${curriculum.grade}` : ''} {curriculum.subject ? `• ${curriculum.subject}` : ''}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+                <Link href="/curriculum" className="text-sm text-[#1E40AF] font-medium hover:text-[#0F172A]">
+                  View all ({curricula.length})
+                </Link>
+              </Card.Body>
+            </Card>
+          ) : (
+            <Card variant="outlined">
+              <Card.Body>
+                <p className="text-slate-600 text-center">No curriculum available</p>
+              </Card.Body>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Statistics */}
       <div>
         <h3 className="text-xl font-bold text-[#0F172A] mb-4">📈 Statistics</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#1E40AF]">{contentQuery.data?.total || 0}</p>
-              <p className="text-sm text-slate-600 mt-2">Content Assets</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{frameworks.length}</p>
+              <p className="text-sm text-slate-600 mt-2">Frameworks</p>
             </Card.Body>
           </Card>
 
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#1E40AF]">{processingJobs.length}</p>
-              <p className="text-sm text-slate-600 mt-2">Active Jobs</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{recentLessons.length}</p>
+              <p className="text-sm text-slate-600 mt-2">Lessons</p>
+            </Card.Body>
+          </Card>
+
+          <Card variant="outlined">
+            <Card.Body className="text-center">
+              <p className="text-3xl font-bold text-[#1E40AF]">{curricula.length}</p>
+              <p className="text-sm text-slate-600 mt-2">Curricula</p>
+            </Card.Body>
+          </Card>
+
+          <Card variant="outlined">
+            <Card.Body className="text-center">
+              <p className="text-3xl font-bold text-[#1E40AF]">{contentQuery.data?.total || 0}</p>
+              <p className="text-sm text-slate-600 mt-2">Content</p>
             </Card.Body>
           </Card>
 
@@ -230,8 +316,8 @@ export default function HomePage() {
 
           <Card variant="outlined">
             <Card.Body className="text-center">
-              <p className="text-3xl font-bold text-[#1E40AF]">{recentLessons.length}</p>
-              <p className="text-sm text-slate-600 mt-2">Lessons</p>
+              <p className="text-3xl font-bold text-[#1E40AF]">{processingJobs.length}</p>
+              <p className="text-sm text-slate-600 mt-2">Jobs</p>
             </Card.Body>
           </Card>
         </div>

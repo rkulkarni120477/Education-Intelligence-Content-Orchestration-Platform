@@ -17,6 +17,7 @@ const navigationItems = [
   { href: '/review', label: 'Review Inbox', icon: '👀' },
   { href: '/analytics', label: 'Analytics', icon: '📊' },
   { href: '/agents', label: 'Agents', icon: '🤖' },
+  { href: '/profile', label: 'Personal Information', icon: '👤' },
 ]
 
 export default function AuthenticatedLayout({
@@ -36,6 +37,11 @@ export default function AuthenticatedLayout({
     logout()
     window.location.href = '/'
   }
+
+  const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+    || user?.full_name
+    || user?.name
+    || user?.email
 
   return (
     <div className="min-h-screen bg-page flex">
@@ -95,7 +101,7 @@ export default function AuthenticatedLayout({
             <div className="space-y-3">
               <div className="text-sm">
                 <p className="text-slate-300 text-xs uppercase tracking-wide">User</p>
-                <p className="font-medium truncate">{user?.name || user?.email}</p>
+                <p className="font-medium truncate">{displayName}</p>
                 <p className="text-xs text-slate-300 capitalize">
                   {user?.role?.replace(/_/g, ' ')}
                 </p>
@@ -124,9 +130,21 @@ export default function AuthenticatedLayout({
         <header className="bg-surface border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-ink">Education Intelligence &amp; Content Orchestration Platform</h1>
-            <div className="text-sm text-ink-muted">
-              {tenant && <span>{tenant.name} · </span>}
-              {user?.email}
+            <div className="flex items-center gap-3">
+              {user?.id && (
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/users/profile/photo/${user.id}`}
+                  alt={displayName || 'Profile'}
+                  className="w-10 h-10 rounded-full border border-border object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              )}
+              <div className="text-sm text-ink-muted">
+                {tenant && <span>{tenant.name} · </span>}
+                {displayName} · {user?.email}
+              </div>
             </div>
           </div>
         </header>
