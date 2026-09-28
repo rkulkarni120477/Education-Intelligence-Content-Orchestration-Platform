@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useAuthRequired } from '@/lib/hooks/useAuthRequired'
+import { apiClient } from '@/lib/api/client'
 
 interface TestResult {
   agent_id: string
@@ -31,32 +32,13 @@ export default function AgentTestPage() {
     const runTests = async () => {
       try {
         setLoading(true)
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/agents/tests/run-all`
-        const token = localStorage.getItem('token') || ''
-
-        console.log('Fetching tests from:', apiUrl)
-        console.log('Token available:', !!token)
-
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-
-        console.log('Response status:', response.status)
-        const contentType = response.headers.get('content-type')
-        console.log('Response content-type:', contentType)
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('API Error Response:', errorText)
-          throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`)
-        }
-
-        const data = await response.json()
-        console.log('Test results received:', data)
+        const response = await apiClient.get<{
+          results?: TestResult[]
+          total_tests?: number
+          passed?: number
+          failed?: number
+        }>('/api/v1/agents/tests/run-all')
+        const data = response.data
 
         setResults(data.results || [])
         setSummary({
