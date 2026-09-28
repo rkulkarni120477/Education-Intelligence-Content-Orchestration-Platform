@@ -15,11 +15,13 @@ class WorkflowState(BaseModel):
     """State management for workflow execution"""
     execution_id: str
     workflow_id: str
+    tenant_id: str
     status: str = "pending"
     current_agent: Optional[str] = None
     context: Dict[str, Any] = {}
     results: Dict[str, AgentOutput] = {}
     errors: List[str] = []
+    agent_runs: List[str] = []
     started_at: datetime = None
     completed_at: Optional[datetime] = None
 
@@ -70,11 +72,12 @@ class WorkflowOrchestrator:
         self.graph = graph.compile()
         return self.graph
 
-    async def execute_workflow(self, execution_id: str, workflow_id: str, workflow_definition: Dict, input_data: Dict) -> WorkflowState:
+    async def execute_workflow(self, execution_id: str, workflow_id: str, workflow_definition: Dict, input_data: Dict, tenant_id: str) -> WorkflowState:
         """Execute a complete workflow"""
         state = WorkflowState(
             execution_id=execution_id,
             workflow_id=workflow_id,
+            tenant_id=tenant_id,
             context=input_data,
             started_at=datetime.utcnow()
         )
@@ -104,6 +107,9 @@ class WorkflowOrchestrator:
 
     async def _execute_agent_node(self, state: WorkflowState, agent_name: str, agent_type: str) -> Dict:
         """Execute a single agent node"""
+        agent_run_id = str(uuid.uuid4())
+        started_at = datetime.utcnow()
+
         try:
             state.current_agent = agent_name
 
@@ -126,6 +132,22 @@ class WorkflowOrchestrator:
             # Update context with output
             state.context.update(output.data)
 
+            # Create AgentRun record
+            agent_status = "completed" if output.status == "success" else output.status
+            self._create_agent_run(
+                agent_run_id=agent_run_id,
+                tenant_id=state.tenant_id,
+                execution_id=state.execution_id,
+                agent_name=agent_name,
+                agent_type=agent_type,
+                status=agent_status,
+                input_data=agent_input.dict(),
+                output_data=output.dict(),
+                started_at=started_at,
+                completed_at=datetime.utcnow()
+            )
+            state.agent_runs.append(agent_run_id)
+
             # Check for failures
             if output.status == "failed":
                 state.errors.extend(output.errors or [])
@@ -138,14 +160,67 @@ class WorkflowOrchestrator:
         except Exception as e:
             logger.error(f"Agent {agent_name} execution failed: {e}")
             state.errors.append(f"Agent {agent_name} failed: {str(e)}")
+
+            # Create AgentRun record for failure
+            self._create_agent_run(
+                agent_run_id=agent_run_id,
+                tenant_id=state.tenant_id,
+                execution_id=state.execution_id,
+                agent_name=agent_name,
+                agent_type=agent_type,
+                status="failed",
+                input_data={},
+                output_data={},
+                error_message=str(e),
+                started_at=started_at,
+                completed_at=datetime.utcnow()
+            )
+            state.agent_runs.append(agent_run_id)
             state.status = "failed"
             return state.dict()
+
+    def _create_agent_run(
+        self,
+        agent_run_id: str,
+        tenant_id: str,
+        execution_id: str,
+        agent_name: str,
+        agent_type: str,
+        status: str,
+        input_data: Dict[str, Any],
+        output_data: Dict[str, Any],
+        started_at: datetime,
+        completed_at: datetime,
+        error_message: Optional[str] = None
+    ):
+        """Create an AgentRun record for tracking agent execution"""
+        try:
+            agent_run = AgentRun(
+                id=agent_run_id,
+                tenant_id=tenant_id,
+                execution_id=execution_id,
+                agent_name=agent_name,
+                agent_type=agent_type,
+                status=status,
+                input_data=input_data,
+                output_data=output_data,
+                error_message=error_message,
+                started_at=started_at,
+                completed_at=completed_at
+            )
+            self.db.add(agent_run)
+            self.db.commit()
+            logger.info(f"✓ Created AgentRun {agent_run_id} for agent {agent_name}")
+        except Exception as e:
+            logger.error(f"Error creating AgentRun: {str(e)}")
+            self.db.rollback()
 
     def _save_execution(self, state: WorkflowState):
         """Save workflow execution to database"""
         execution = WorkflowExecution(
             id=state.execution_id,
             workflow_id=state.workflow_id,
+            tenant_id=state.tenant_id,
             status=state.status,
             input_data=state.context,
             output_data={
