@@ -23,10 +23,18 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
-    # LangChain Configuration
-    OPENAI_API_KEY: Optional[str] = None
-    LLM_MODEL: str = "gpt-3.5-turbo"
+    # AWS Configuration
+    AWS_REGION: str = "us-east-1"
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+
+    # LLM Configuration (AWS Bedrock)
+    LLM_PROVIDER: str = "bedrock"  # Options: bedrock, openai
+    LLM_MODEL: str = "anthropic.claude-opus-5-sonnet-20241022-v2:0"
     LLM_TEMPERATURE: float = 0.7
+
+    # LangChain Configuration (Legacy)
+    OPENAI_API_KEY: Optional[str] = None
 
     # Vector Store
     VECTOR_STORE_TYPE: str = "chroma"  # faiss, chroma, or milvus

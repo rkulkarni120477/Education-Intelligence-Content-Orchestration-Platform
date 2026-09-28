@@ -2,16 +2,15 @@
 Recommendations Service.
 
 Generates recommendations for curriculum improvements based on skill gaps,
-coverage analysis, and educational best practices.
+coverage analysis, and educational best practices using AWS Bedrock.
 """
 
 from typing import Dict, List, Any, Optional
 import json
 import logging
+import boto3
 from dataclasses import dataclass
 from enum import Enum
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -67,15 +66,15 @@ class RecommendationsResult(BaseModel):
 class RecommendationsService:
     """Service for generating curriculum improvement recommendations."""
 
-    def __init__(self, model: str = "claude-opus-5-5"):
+    def __init__(self, model: str = "anthropic.claude-opus-5-sonnet-20241022-v2:0"):
         """
         Initialize the recommendations service.
 
         Args:
-            model: Claude model to use
+            model: AWS Bedrock model ID to use
         """
         self.model = model
-        self.client = ChatAnthropic(model=model)
+        self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
     def generate_recommendations(
         self,
@@ -143,7 +142,7 @@ class RecommendationsService:
         gaps: List[Dict[str, Any]],
         course_structure: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
-        """Generate recommendations using Claude."""
+        """Generate recommendations using AWS Bedrock."""
 
         system_prompt = """You are an expert curriculum designer. Generate specific,
 actionable recommendations for improving a course based on skill coverage analysis.
@@ -197,13 +196,20 @@ High Priority Gaps ({len(high_gaps)}):
 Generate recommendations to address these gaps and improve course quality."""
 
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_message),
+            {"role": "user", "content": system_prompt + "\n\n" + user_message}
         ]
 
         try:
-            response = self.client.invoke(messages)
-            response_text = response.content
+            response = self.client.converse(
+                modelId=self.model,
+                messages=messages,
+                inferenceConfig={
+                    "maxTokens": 4096,
+                    "temperature": 0.7,
+                }
+            )
+
+            response_text = response['output']['message']['content'][0]['text']
 
             # Parse JSON response
             json_start = response_text.find('{')

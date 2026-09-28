@@ -1,16 +1,15 @@
 """
 Skill Mapping Service.
 
-Maps workforce skills to course content using Claude, calculates coverage,
+Maps workforce skills to course content using AWS Bedrock, calculates coverage,
 and identifies gaps. Creates alignment records with evidence tracking.
 """
 
 from typing import Dict, List, Any, Optional, Tuple
 import json
 import logging
+import boto3
 from dataclasses import dataclass
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -60,15 +59,15 @@ class SkillMappingResult(BaseModel):
 class SkillMappingService:
     """Service for mapping workforce skills to course content."""
 
-    def __init__(self, model: str = "claude-opus-5-5"):
+    def __init__(self, model: str = "anthropic.claude-opus-5-sonnet-20241022-v2:0"):
         """
         Initialize the skill mapping service.
 
         Args:
-            model: Claude model to use
+            model: AWS Bedrock model ID to use
         """
         self.model = model
-        self.client = ChatAnthropic(model=model)
+        self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
     def map_skills_to_content(
         self,
@@ -141,7 +140,7 @@ class SkillMappingService:
         course_content: List[Dict[str, str]],
         required_skills: List[Dict[str, str]],
     ) -> List[SkillAlignment]:
-        """Identify skill-to-content alignments using Claude."""
+        """Identify skill-to-content alignments using AWS Bedrock."""
 
         # Build system prompt
         system_prompt = """You are an expert curriculum analyst. Your task is to identify
@@ -189,13 +188,20 @@ Required Skills:
 Identify all skill-to-content alignments."""
 
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_message),
+            {"role": "user", "content": system_prompt + "\n\n" + user_message}
         ]
 
         try:
-            response = self.client.invoke(messages)
-            response_text = response.content
+            response = self.client.converse(
+                modelId=self.model,
+                messages=messages,
+                inferenceConfig={
+                    "maxTokens": 4096,
+                    "temperature": 0.7,
+                }
+            )
+
+            response_text = response['output']['message']['content'][0]['text']
 
             # Parse JSON response
             json_start = response_text.find('{')

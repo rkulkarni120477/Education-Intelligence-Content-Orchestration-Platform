@@ -153,15 +153,19 @@ REGISTERED_AGENTS = {
 
 # AI Provider configurations (safe, non-secret metadata)
 AI_PROVIDERS = {
-    "anthropic": {
-        "provider": "Anthropic",
-        "models": ["claude-opus-5-5", "claude-sonnet-5", "claude-haiku-4-5"],
+    "aws-bedrock": {
+        "provider": "AWS Bedrock",
+        "models": [
+            "anthropic.claude-opus-5-sonnet-20241022-v2:0",
+            "anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "anthropic.claude-3-sonnet-20240229-v1:0"
+        ],
         "status": "active",
     },
     "openai": {
         "provider": "OpenAI",
         "models": ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"],
-        "status": "active",
+        "status": "inactive",  # Set to inactive as we're now using AWS
     },
 }
 
@@ -365,14 +369,14 @@ async def get_ai_statistics(
             output_tokens = request_count * 300  # Estimated
             total_agent_tokens = input_tokens + output_tokens
 
-            # Estimated cost (Anthropic Claude 3.5 Sonnet pricing)
+            # Estimated cost (AWS Bedrock Claude Opus 5 Sonnet pricing)
             # Input: $3/M tokens, Output: $15/M tokens
             estimated_cost = (input_tokens * 3 / 1_000_000) + (output_tokens * 15 / 1_000_000)
 
             stat = AIProviderStats(
-                provider="Anthropic",
-                model="claude-opus-5-5",
-                credential_label="anthropic-key-prod",  # Safe label only
+                provider="AWS Bedrock",
+                model="anthropic.claude-opus-5-sonnet-20241022-v2:0",
+                credential_label="aws-bedrock-prod",  # Safe label only
                 workflow_agent=agent_id,
                 requests=request_count,
                 input_tokens=input_tokens,

@@ -1,15 +1,14 @@
 """
 Requirements Extraction Service.
 
-Uses Claude to extract institution requirements from program context,
+Uses AWS Bedrock to extract institution requirements from program context,
 goals, and workforce role descriptions.
 """
 
 from typing import Dict, List, Any, Optional
 import json
 import logging
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
+import boto3
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -40,17 +39,17 @@ class RequirementsExtractionResult(BaseModel):
 
 
 class RequirementsExtractionService:
-    """Service for extracting institution requirements using Claude."""
+    """Service for extracting institution requirements using AWS Bedrock."""
 
-    def __init__(self, model: str = "claude-opus-5-5"):
+    def __init__(self, model: str = "anthropic.claude-opus-5-sonnet-20241022-v2:0"):
         """
         Initialize the service.
 
         Args:
-            model: Claude model to use for extraction
+            model: AWS Bedrock model ID to use for extraction
         """
         self.model = model
-        self.client = ChatAnthropic(model=model)
+        self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
     def extract_requirements(
         self,
@@ -126,14 +125,21 @@ Format your response as a JSON object matching this structure:
 
             user_message = "\n\n".join(context_parts)
 
-            # Call Claude
+            # Call AWS Bedrock
             messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_message),
+                {"role": "user", "content": system_prompt + "\n\n" + user_message}
             ]
 
-            response = self.client.invoke(messages)
-            response_text = response.content
+            response = self.client.converse(
+                modelId=self.model,
+                messages=messages,
+                inferenceConfig={
+                    "maxTokens": 4096,
+                    "temperature": 0.7,
+                }
+            )
+
+            response_text = response['output']['message']['content'][0]['text']
 
             # Parse JSON response
             try:
