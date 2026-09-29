@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useCustomContentStore } from '@/lib/stores/custom-content'
 import { useFileUpload, UploadProgress } from '@/lib/hooks/useFileUpload'
+import { useMessageStream } from '@/lib/hooks/useMessageStream'
 
 interface ChatPanelProps {
   conversationId: string | null
@@ -11,34 +12,35 @@ interface ChatPanelProps {
 export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
   const [prompt, setPrompt] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
-  const { conversations, sendMessage } = useCustomContentStore()
+  const { conversations } = useCustomContentStore()
   const { uploadFiles, uploads } = useFileUpload(conversationId)
+  const { isStreaming, streamContent, streamError, sendMessageStream, cancelStream } =
+    useMessageStream(conversationId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const conversation = conversations.find((c) => c.id === conversationId)
   const messages = conversation?.messages || []
+  const hasStreamingMessage = streamContent.length > 0 || isStreaming
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamContent])
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !conversationId) return
 
-    setIsLoading(true)
-    try {
-      await sendMessage(conversationId, prompt, selectedFiles)
-      setPrompt('')
-      setSelectedFiles([])
-    } catch (error) {
-      console.error('Error sending message:', error)
-    } finally {
-      setIsLoading(false)
-    }
+    const messageText = prompt
+    const messageFiles = [...selectedFiles]
+
+    // Clear input immediately
+    setPrompt('')
+    setSelectedFiles([])
+
+    // Stream response from AI
+    await sendMessageStream(messageText, messageFiles)
   }
 
   const handleFileUploadChange = async (files: FileList | null) => {
@@ -117,14 +119,26 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
           ))
         )}
 
-        {/* Agent Status Steps (placeholder for streaming) */}
-        {isLoading && (
+        {/* Streaming Message */}
+        {hasStreamingMessage && (
           <div className="flex justify-start">
-            <div className="bg-page text-ink px-4 py-2 rounded-lg">
-              <div className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
-                <span className="text-sm">Processing...</span>
-              </div>
+            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-page text-ink">
+              <p className="text-sm whitespace-pre-wrap break-words">{streamContent}</p>
+              {isStreaming && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="animate-spin">⏳</span>
+                  <span className="text-xs text-ink-muted">Generating...</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {streamError && (
+          <div className="flex justify-start">
+            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-error/10 text-error border border-error/20">
+              <p className="text-sm">{streamError}</p>
             </div>
           </div>
         )}
@@ -196,7 +210,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
             placeholder="Describe the content you want to create..."
             className="w-full bg-page text-ink p-3 rounded-lg border border-border resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
             rows={3}
-            disabled={isLoading}
+            disabled={isStreaming}
           />
 
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
@@ -211,18 +225,24 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
               onClick={() => fileInputRef.current?.click()}
               className="p-2 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
               title="Upload file"
-              disabled={isLoading}
+              disabled={isStreaming}
             >
               📎
             </button>
 
             <button
-              onClick={handleSendMessage}
-              disabled={!prompt.trim() || isLoading}
+              onClick={() => {
+                if (isStreaming) {
+                  cancelStream()
+                } else {
+                  handleSendMessage()
+                }
+              }}
+              disabled={(!prompt.trim() && !isStreaming)}
               className="ml-auto p-2 bg-primary hover:bg-primary-hover rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={isLoading ? 'Stop' : 'Send'}
+              title={isStreaming ? 'Cancel' : 'Send'}
             >
-              {isLoading ? '⏹️' : '↑'}
+              {isStreaming ? '⏹️' : '↑'}
             </button>
           </div>
         </div>

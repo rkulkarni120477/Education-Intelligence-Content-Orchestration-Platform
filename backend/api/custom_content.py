@@ -1,16 +1,16 @@
-"""Custom Content Development API Routes - Phase 2: File Management.
+"""Custom Content Development API Routes - Phase 3: LLM Integration.
 
 Endpoints for:
 - Conversation management (CRUD)
 - File upload, download, deletion, rename
 - Agent interaction with streaming
-- Message history
+- Message history with LLM integration
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, AsyncGenerator
 from pydantic import BaseModel, Field
 from database.db import get_db
 from database.models import (
@@ -20,11 +20,13 @@ from database.models import (
 )
 from auth.tenant_context import get_current_tenant_id
 from services.custom_content_file_service import CustomContentFileService
+from services.llm_service import LLMService
 import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
 import io
+import json
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/custom-content", tags=["custom-content"])
@@ -560,7 +562,7 @@ async def delete_file(
         )
 
 
-# ===== MESSAGE ENDPOINTS (placeholder for agent integration) =====
+# ===== MESSAGE ENDPOINTS =====
 
 @router.post("/conversations/{conversation_id}/messages")
 async def send_message(
@@ -569,12 +571,13 @@ async def send_message(
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id),
 ) -> Dict[str, Any]:
-    """Send a message and start agent processing.
+    """Send a message to the conversation (creates user message).
 
-    This endpoint will be connected to the agent in Phase 5-6.
-    For now, it returns a placeholder response.
+    Returns immediately. Use /messages/stream endpoint for streaming responses.
     """
     try:
+        user_id = "current_user"  # TODO: Get from request context
+
         # Verify conversation exists
         conversation = db.query(CustomContentConversation).filter(
             CustomContentConversation.id == conversation_id,
@@ -587,11 +590,25 @@ async def send_message(
                 detail="Conversation not found"
             )
 
-        logger.info(f"Message sent to conversation {conversation_id}: {request.prompt[:50]}...")
+        # Create user message
+        user_message = CustomContentMessage(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            conversation_id=conversation_id,
+            role="user",
+            content=request.prompt,
+            message_type="text",
+            metadata={"file_ids": request.file_ids} if request.file_ids else {},
+        )
+        db.add(user_message)
+        db.commit()
+        db.refresh(user_message)
+
+        logger.info(f"Created user message {user_message.id} in conversation {conversation_id}")
 
         return {
-            "status": "accepted",
-            "message": "Message queued for processing (agent integration coming in Phase 5)",
+            "status": "success",
+            "message_id": user_message.id,
             "conversation_id": conversation_id,
         }
 
@@ -603,3 +620,130 @@ async def send_message(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+@router.post("/conversations/{conversation_id}/messages/stream")
+async def stream_message(
+    conversation_id: str,
+    request: SendMessageRequest,
+    db: Session = Depends(get_db),
+    tenant_id: str = Depends(get_current_tenant_id),
+):
+    """Stream AI response with file context.
+
+    Sends message and returns streaming response via SSE.
+    """
+    def event_generator():
+        try:
+            user_id = "current_user"  # TODO: Get from request context
+
+            # Verify conversation exists
+            conversation = db.query(CustomContentConversation).filter(
+                CustomContentConversation.id == conversation_id,
+                CustomContentConversation.tenant_id == tenant_id,
+            ).first()
+
+            if not conversation:
+                yield f"data: {json.dumps({'type': 'error', 'content': 'Conversation not found'})}\n\n"
+                return
+
+            # Create user message
+            user_message = CustomContentMessage(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant_id,
+                conversation_id=conversation_id,
+                role="user",
+                content=request.prompt,
+                message_type="text",
+                metadata={"file_ids": request.file_ids} if request.file_ids else {},
+            )
+            db.add(user_message)
+            db.commit()
+            db.refresh(user_message)
+
+            logger.info(
+                f"[{tenant_id}] User message {user_message.id} in conversation {conversation_id}"
+            )
+
+            # Load files for context
+            files = []
+            if request.file_ids:
+                files = db.query(CustomContentFile).filter(
+                    CustomContentFile.id.in_(request.file_ids),
+                    CustomContentFile.tenant_id == tenant_id,
+                    CustomContentFile.conversation_id == conversation_id,
+                ).all()
+
+            # Get conversation history for context
+            history_messages = db.query(CustomContentMessage).filter(
+                CustomContentMessage.conversation_id == conversation_id,
+                CustomContentMessage.id != user_message.id,
+            ).order_by(
+                CustomContentMessage.created_at.desc()
+            ).limit(10).all()
+
+            # Reverse to chronological order
+            history_messages = list(reversed(history_messages))
+
+            conversation_history = [
+                {
+                    "role": msg.role,
+                    "content": msg.content,
+                }
+                for msg in history_messages[-5:]  # Last 5 messages for context
+            ]
+
+            # Signal start of streaming
+            yield f"data: {json.dumps({'type': 'start', 'content': ''})}\n\n"
+
+            # Stream response from LLM
+            assistant_content = ""
+            for chunk in LLMService.stream_message(
+                prompt=request.prompt,
+                files=files,
+                conversation_history=conversation_history,
+                tenant_id=tenant_id,
+            ):
+                assistant_content += chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
+
+            # Create assistant message in database
+            assistant_message = CustomContentMessage(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant_id,
+                conversation_id=conversation_id,
+                role="assistant",
+                content=assistant_content,
+                message_type="text",
+                metadata={
+                    "model": LLMService.get_model_info()["model_id"],
+                    "file_ids": request.file_ids,
+                },
+            )
+            db.add(assistant_message)
+
+            # Update conversation timestamp
+            conversation.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(assistant_message)
+
+            logger.info(
+                f"[{tenant_id}] Assistant message {assistant_message.id} "
+                f"created ({len(assistant_content)} chars)"
+            )
+
+            # Signal completion
+            yield f"data: {json.dumps({'type': 'end', 'content': '', 'message_id': assistant_message.id})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in stream_message: {str(e)}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
