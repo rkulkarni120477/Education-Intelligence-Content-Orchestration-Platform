@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast'
 export default function CustomContentDevelopmentPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
 
   const {
     conversations,
@@ -90,7 +91,10 @@ export default function CustomContentDevelopmentPage() {
                     style={{ width: `${layoutState.explorer.width}px` }}
                     className="border-r border-border bg-surface flex flex-col"
                   >
-                    <FileExplorer conversationId={activeConversationId} />
+                    <FileExplorer
+                      conversationId={activeConversationId}
+                      onSelectFile={setSelectedFileId}
+                    />
                   </div>
                 )}
 
@@ -100,7 +104,7 @@ export default function CustomContentDevelopmentPage() {
                     style={{ flex: 1, minWidth: '300px' }}
                     className="border-r border-border bg-page flex flex-col"
                   >
-                    <Editor conversationId={activeConversationId} />
+                    <Editor conversationId={activeConversationId} selectedFileId={selectedFileId} />
                   </div>
                 )}
 

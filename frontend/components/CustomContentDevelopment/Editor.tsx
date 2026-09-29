@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useCustomContentStore } from '@/lib/stores/custom-content'
 
 interface EditorTab {
   id: string
@@ -13,9 +14,11 @@ interface EditorTab {
 
 interface EditorProps {
   conversationId: string | null
+  selectedFileId?: string | null
 }
 
-export const Editor: React.FC<EditorProps> = ({ conversationId }) => {
+export const Editor: React.FC<EditorProps> = ({ conversationId, selectedFileId }) => {
+  const { conversations } = useCustomContentStore()
   const [openTabs, setOpenTabs] = useState<EditorTab[]>([
     {
       id: 'welcome',
@@ -27,6 +30,48 @@ export const Editor: React.FC<EditorProps> = ({ conversationId }) => {
     },
   ])
   const [activeTabId, setActiveTabId] = useState('welcome')
+
+  // Handle file selection
+  useEffect(() => {
+    if (!selectedFileId || !conversationId) return
+
+    const conversation = conversations.find((c) => c.id === conversationId)
+    const file = conversation?.files.find((f) => f.id === selectedFileId)
+
+    if (file) {
+      // Check if file is already open
+      if (openTabs.find((t) => t.id === file.id)) {
+        setActiveTabId(file.id)
+        return
+      }
+
+      // Determine file type for syntax highlighting
+      const ext = file.name.split('.').pop()?.toLowerCase() || ''
+      const typeMap: Record<string, EditorTab['type']> = {
+        md: 'markdown',
+        txt: 'plain',
+        json: 'json',
+        html: 'html',
+        css: 'plain',
+        js: 'code',
+        ts: 'code',
+        tsx: 'code',
+        jsx: 'code',
+      }
+
+      const newTab: EditorTab = {
+        id: file.id,
+        name: file.name,
+        content: file.content || '',
+        isDirty: false,
+        isGenerating: false,
+        type: typeMap[ext] || 'plain',
+      }
+
+      setOpenTabs((tabs) => [...tabs, newTab])
+      setActiveTabId(file.id)
+    }
+  }, [selectedFileId, conversationId, conversations])
 
   const activeTab = openTabs.find((t) => t.id === activeTabId)
 

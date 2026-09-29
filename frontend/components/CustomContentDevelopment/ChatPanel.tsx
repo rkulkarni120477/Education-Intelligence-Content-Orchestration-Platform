@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useCustomContentStore } from '@/lib/stores/custom-content'
+import { useFileUpload, UploadProgress } from '@/lib/hooks/useFileUpload'
 
 interface ChatPanelProps {
   conversationId: string | null
@@ -11,7 +12,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
   const [prompt, setPrompt] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
   const { conversations, sendMessage } = useCustomContentStore()
+  const { uploadFiles, uploads } = useFileUpload(conversationId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -38,23 +41,39 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
     }
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.currentTarget.files
+  const handleFileUploadChange = async (files: FileList | null) => {
     if (!files || !conversationId) return
 
-    Array.from(files).forEach(async (file) => {
-      try {
-        const { uploadFile } = useCustomContentStore.getState()
-        const uploadedFile = await uploadFile(conversationId, file)
-        setSelectedFiles((prev) => [...prev, uploadedFile.id])
-      } catch (error) {
-        console.error('Error uploading file:', error)
-      }
-    })
+    try {
+      const uploaded = await uploadFiles(files)
+      uploaded.forEach((file) => {
+        setSelectedFiles((prev) => [...prev, file.id])
+      })
+    } catch (error) {
+      console.error('Error uploading files:', error)
+    }
   }
 
   const handleRemoveFile = (fileId: string) => {
     setSelectedFiles((prev) => prev.filter((id) => id !== fileId))
+  }
+
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    handleFileUploadChange(e.dataTransfer.files)
   }
 
   if (!conversationId) {
@@ -113,31 +132,57 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Upload Progress */}
+      {Object.values(uploads).length > 0 && (
+        <div className="border-t border-border px-4 py-2 bg-page/50 space-y-2">
+          {Object.values(uploads).map((upload) => (
+            <UploadProgressChip key={upload.fileId} upload={upload} />
+          ))}
+        </div>
+      )}
+
       {/* Attached Files */}
       {selectedFiles.length > 0 && (
         <div className="border-t border-border px-4 py-2 bg-page/50">
           <div className="flex flex-wrap gap-2">
-            {selectedFiles.map((fileId) => (
-              <div
-                key={fileId}
-                className="flex items-center gap-2 bg-surface border border-border rounded-full px-3 py-1 text-sm"
-              >
-                <span>📎</span>
-                <span className="text-xs text-ink-muted">{fileId}</span>
-                <button
-                  onClick={() => handleRemoveFile(fileId)}
-                  className="hover:text-error"
+            {selectedFiles.map((fileId) => {
+              const file = conversation?.files.find((f) => f.id === fileId)
+              return (
+                <div
+                  key={fileId}
+                  className="flex items-center gap-2 bg-surface border border-border rounded-full px-3 py-1 text-sm"
                 >
-                  ✕
-                </button>
-              </div>
-            ))}
+                  <span>📎</span>
+                  <span className="text-xs text-ink-muted">{file?.name || fileId}</span>
+                  <button
+                    onClick={() => handleRemoveFile(fileId)}
+                    className="hover:text-error"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
 
       {/* Composer */}
-      <div className="border-t border-border p-4 bg-surface space-y-3">
+      <div
+        className={`border-t border-border p-4 bg-surface space-y-3 transition-colors ${
+          dragActive ? 'bg-primary/5' : ''
+        }`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+      >
+        {dragActive && (
+          <div className="absolute inset-0 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded-lg pointer-events-none">
+            <p className="text-sm font-medium text-primary">Drop files to upload</p>
+          </div>
+        )}
+
         <div className="relative">
           <textarea
             value={prompt}
@@ -159,7 +204,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
               ref={fileInputRef}
               type="file"
               multiple
-              onChange={handleFileUpload}
+              onChange={(e) => handleFileUploadChange(e.currentTarget.files)}
               className="hidden"
             />
             <button
@@ -182,6 +227,40 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+const UploadProgressChip: React.FC<{ upload: UploadProgress }> = ({ upload }) => {
+  const progressPercent = Math.round(upload.progress)
+  const isError = upload.status === 'error'
+  const isCompleted = upload.status === 'completed'
+
+  return (
+    <div
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+        isError
+          ? 'bg-error/10 text-error'
+          : isCompleted
+            ? 'bg-success/10 text-success'
+            : 'bg-primary/10 text-primary'
+      }`}
+    >
+      <span className="flex-shrink-0">
+        {isError ? '✕' : isCompleted ? '✓' : '⏳'}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs truncate">{upload.fileName}</p>
+        {!isCompleted && !isError && (
+          <div className="w-full bg-white/20 rounded-full h-1 mt-1">
+            <div
+              className="bg-primary h-1 rounded-full transition-all"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        )}
+      </div>
+      {isError && <p className="text-xs">{upload.error}</p>}
     </div>
   )
 }
