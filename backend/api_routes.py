@@ -1184,56 +1184,115 @@ def _process_content_upload(
             raise ValueError(f"Content {content_id} not found")
 
         extracted_text = ""
-        if suffix == ".pdf":
-            from pypdf import PdfReader
 
-            reader = PdfReader(file_path)
-            extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
-        elif mime_type == "text/plain":
-            extracted_text = Path(file_path).read_text(encoding="utf-8")
+        # Try multiple text extraction methods based on file type
+        try:
+            if suffix == ".pdf":
+                try:
+                    from pypdf import PdfReader
+                    reader = PdfReader(file_path)
+                    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+                    if extracted_text:
+                        logger.info(f"Extracted text from PDF {content_id}: {len(extracted_text)} chars")
+                    else:
+                        logger.warning(f"PDF {content_id} contains no extractable text (may be scanned/image-based)")
+                except Exception as pdf_error:
+                    logger.warning(f"PDF extraction failed for {content_id}: {str(pdf_error)}")
 
+            elif suffix == ".docx" or mime_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+                try:
+                    from docx import Document
+                    doc = Document(file_path)
+                    extracted_text = "\n".join(para.text for para in doc.paragraphs if para.text.strip()).strip()
+                    if extracted_text:
+                        logger.info(f"Extracted text from DOCX {content_id}: {len(extracted_text)} chars")
+                    else:
+                        logger.warning(f"DOCX {content_id} contains no text")
+                except Exception as docx_error:
+                    logger.warning(f"DOCX extraction failed for {content_id}: {str(docx_error)}")
+
+            elif suffix == ".txt" or mime_type == "text/plain":
+                try:
+                    extracted_text = Path(file_path).read_text(encoding="utf-8")
+                    if extracted_text:
+                        logger.info(f"Extracted text from TXT {content_id}: {len(extracted_text)} chars")
+                except UnicodeDecodeError:
+                    # Try with different encoding
+                    try:
+                        extracted_text = Path(file_path).read_text(encoding="latin-1")
+                        logger.info(f"Extracted text from TXT {content_id} (latin-1): {len(extracted_text)} chars")
+                    except Exception as txt_error:
+                        logger.warning(f"TXT extraction failed for {content_id}: {str(txt_error)}")
+
+            else:
+                logger.info(f"Content {content_id} has unsupported file type {suffix} - storing as-is")
+
+        except Exception as extraction_error:
+            logger.warning(f"Text extraction skipped for {content_id}: {str(extraction_error)}")
+
+        # Set status based on whether text was extracted
         status_value = "ingested"
+
         if extracted_text:
             content.raw_content = extracted_text
-            chunks = [
-                extracted_text[index:index + 1000]
-                for index in range(0, len(extracted_text), 900)
-            ]
-            vector_store = _get_vector_store("academian_content")
-            vector_store.add_documents(
-                documents=chunks,
-                metadatas=[{
-                    "content_id": content_id,
-                    "tenant_id": tenant_id,
-                    "title": title,
-                    "source": file_path,
-                    "chunk_index": index,
-                } for index in range(len(chunks))],
-                ids=[f"{content_id}:{index}" for index in range(len(chunks))],
-            )
-            status_value = "indexed"
+            try:
+                chunks = [
+                    extracted_text[index:index + 1000]
+                    for index in range(0, len(extracted_text), 900)
+                ]
+                vector_store = _get_vector_store("academian_content")
+                vector_store.add_documents(
+                    documents=chunks,
+                    metadatas=[{
+                        "content_id": content_id,
+                        "tenant_id": tenant_id,
+                        "title": title,
+                        "source": file_path,
+                        "chunk_index": index,
+                    } for index in range(len(chunks))],
+                    ids=[f"{content_id}:{index}" for index in range(len(chunks))],
+                )
+                status_value = "indexed"
+                logger.info(f"Indexed {len(chunks)} chunks for content {content_id}")
+            except Exception as index_error:
+                logger.error(f"Vector indexing failed for {content_id}: {str(index_error)}")
+                status_value = "ingested"
+        else:
+            logger.warning(f"No text extracted for content {content_id} - marking as ingested without indexing")
 
         content.status = status_value
         if status_value == "indexed":
-            governance = ContentGovernanceAgent.review(content)
-            content.content_metadata = {
-                **(content.content_metadata or {}),
-                "governance": governance,
-            }
-            content.status = "review_required"
+            try:
+                governance = ContentGovernanceAgent.review(content)
+                content.content_metadata = {
+                    **(content.content_metadata or {}),
+                    "governance": governance,
+                }
+                content.status = "review_required"
+                logger.info(f"Governance review completed for {content_id}: {governance.get('recommendation')}")
+            except Exception as gov_error:
+                logger.error(f"Governance review failed for {content_id}: {str(gov_error)}")
+                content.status = "indexed"
+
         db.commit()
         logger.info(f"Processed uploaded content {content_id} with status {content.status}")
+
     except Exception as e:
         db.rollback()
-        content = db.query(Content).filter(Content.id == content_id).first()
-        if content:
-            content.status = "failed"
-            content.content_metadata = {
-                **(content.content_metadata or {}),
-                "processing_error": str(e),
-            }
-            db.commit()
-        logger.error(f"Error processing uploaded content {content_id}: {str(e)}")
+        try:
+            content = db.query(Content).filter(Content.id == content_id).first()
+            if content:
+                content.status = "failed"
+                error_msg = f"{type(e).__name__}: {str(e)}"
+                content.content_metadata = {
+                    **(content.content_metadata or {}),
+                    "processing_error": error_msg,
+                }
+                db.commit()
+                logger.error(f"Content {content_id} marked as failed: {error_msg}")
+        except Exception as rollback_error:
+            logger.error(f"Error updating failed status for {content_id}: {str(rollback_error)}")
+        logger.error(f"Error processing uploaded content {content_id}: {str(e)}", exc_info=True)
     finally:
         db.close()
 
