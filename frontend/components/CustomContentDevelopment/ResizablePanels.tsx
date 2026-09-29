@@ -27,37 +27,46 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({
   persistKey,
   children,
 }) => {
-  const [layoutState, setLayoutState] = useState<LayoutState>({})
+  // Initialize layout state with proper defaults
+  const initializeLayoutState = (): LayoutState => {
+    if (typeof window === 'undefined') {
+      // Server-side rendering
+      const layout: LayoutState = {}
+      panels.forEach((panel) => {
+        layout[panel.id] = {
+          width: panel.defaultWidth || 300,
+          isVisible: true,
+        }
+      })
+      return layout
+    }
+
+    const savedLayout = localStorage.getItem(persistKey)
+    const layout: LayoutState = {}
+
+    panels.forEach((panel) => {
+      const saved = savedLayout ? JSON.parse(savedLayout)[panel.id] : null
+      const width = saved?.width || panel.defaultWidth || 300
+
+      layout[panel.id] = {
+        width: Math.max(panel.min, Math.min(width, panel.max || 800)),
+        isVisible: saved?.isVisible !== false,
+      }
+    })
+
+    return layout
+  }
+
+  const [layoutState, setLayoutState] = useState<LayoutState>(initializeLayoutState)
   const [isDragging, setIsDragging] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Initialize layout from localStorage or defaults
+  // Persist layout to localStorage when it changes
   useEffect(() => {
-    const initializeLayout = () => {
-      const savedLayout = localStorage.getItem(persistKey)
-      const layout: LayoutState = {}
+    if (typeof window === 'undefined') return
+    if (Object.keys(layoutState).length === 0) return
 
-      panels.forEach((panel) => {
-        const saved = savedLayout ? JSON.parse(savedLayout)[panel.id] : null
-        const width = saved?.width || panel.defaultWidth || 300
-
-        layout[panel.id] = {
-          width: Math.max(panel.min, Math.min(width, panel.max || 800)),
-          isVisible: saved?.isVisible !== false,
-        }
-      })
-
-      setLayoutState(layout)
-    }
-
-    initializeLayout()
-  }, [panels, persistKey])
-
-  // Persist layout to localStorage
-  useEffect(() => {
-    if (Object.keys(layoutState).length > 0) {
-      localStorage.setItem(persistKey, JSON.stringify(layoutState))
-    }
+    localStorage.setItem(persistKey, JSON.stringify(layoutState))
   }, [layoutState, persistKey])
 
   const handleDragStart = (panelId: string) => {
