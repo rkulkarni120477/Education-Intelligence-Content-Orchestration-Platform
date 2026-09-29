@@ -160,7 +160,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId }) => {
         <div className="border-t border-border px-4 py-2 bg-page/50">
           <div className="flex flex-wrap gap-2">
             {selectedFiles.map((fileId) => {
-              const file = conversation?.files.find((f) => f.id === fileId)
+              const file = conversation?.files?.find((f) => f.id === fileId)
               return (
                 <div
                   key={fileId}

@@ -57,7 +57,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({
     return layout
   }
 
-  const [layoutState, setLayoutState] = useState<LayoutState>(initializeLayoutState)
+  const [layoutState, setLayoutState] = useState<LayoutState>(() => initializeLayoutState())
   const [isDragging, setIsDragging] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
