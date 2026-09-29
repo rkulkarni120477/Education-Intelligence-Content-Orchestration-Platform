@@ -247,6 +247,61 @@ class AuditLog(Base):
     user = relationship("User", back_populates="audit_logs")
 
 
+class CustomContentConversation(Base):
+    __tablename__ = "custom_content_conversations"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    is_archived = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('tenant_id', 'user_id', 'id', name='uq_tenant_user_conversation'),)
+
+    messages = relationship("CustomContentMessage", back_populates="conversation", cascade="all, delete-orphan")
+    files = relationship("CustomContentFile", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class CustomContentMessage(Base):
+    __tablename__ = "custom_content_messages"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    conversation_id = Column(String(36), ForeignKey("custom_content_conversations.id"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # 'user' or 'assistant'
+    content = Column(Text, nullable=False)
+    message_type = Column(String(50), default="text")  # 'text', 'status_update', 'system'
+    metadata = Column(JSON, default={})  # Tool calls, step info, etc.
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    conversation = relationship("CustomContentConversation", back_populates="messages")
+
+
+class CustomContentFile(Base):
+    __tablename__ = "custom_content_files"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    conversation_id = Column(String(36), ForeignKey("custom_content_conversations.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    file_type = Column(String(50), nullable=False)  # 'upload' or 'generated'
+    mime_type = Column(String(100))
+    path = Column(String(500), nullable=False)  # On disk
+    size = Column(Integer, default=0)  # In bytes
+    content = Column(Text)  # Stored for small files
+    is_generated = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('conversation_id', 'name', name='uq_conversation_filename'),)
+
+    conversation = relationship("CustomContentConversation", back_populates="files")
+
+
 class SystemMetrics(Base):
     __tablename__ = "system_metrics"
 

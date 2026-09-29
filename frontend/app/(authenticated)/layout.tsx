@@ -17,6 +17,7 @@ const navigationItems = [
   { href: '/curriculum', label: 'Curriculum', icon: '📖' },
   { href: '/alignment', label: 'Alignment', icon: '🎯' },
   { href: '/authoring', label: 'Authoring Studio', icon: '✏️' },
+  { href: '/custom-content-development', label: 'Custom Content Dev', icon: '✨' },
   { href: '/review', label: 'Review Inbox', icon: '👀' },
   { href: '/analytics', label: 'Analytics', icon: '📊' },
   { href: '/agents', label: 'Agents', icon: '🤖' },
