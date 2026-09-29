@@ -1,8 +1,8 @@
-"""Custom Content Development API Routes - Phase 2: File Management.
+"""Custom Content Development API Routes.
 
 Endpoints for:
 - Conversation management (CRUD)
-- File upload, download, deletion, rename
+- File upload, download, deletion
 - Agent interaction with streaming
 - Message history
 """
@@ -17,6 +17,7 @@ from database.models import (
     CustomContentConversation,
     CustomContentMessage,
     CustomContentFile,
+    User
 )
 from auth.tenant_context import get_current_tenant_id
 from services.custom_content_file_service import CustomContentFileService
@@ -86,13 +87,6 @@ class CreateConversationRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=1000)
 
 
-class UpdateConversationRequest(BaseModel):
-    """Request to update conversation metadata."""
-    title: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    is_archived: Optional[bool] = None
-
-
 class SendMessageRequest(BaseModel):
     """Request to send a message to the agent."""
     prompt: str = Field(..., min_length=1)
@@ -100,9 +94,11 @@ class SendMessageRequest(BaseModel):
     context_file_id: Optional[str] = None
 
 
-class RenameFileRequest(BaseModel):
-    """Request to rename a file."""
-    new_name: str = Field(..., min_length=1, max_length=255)
+class UpdateConversationRequest(BaseModel):
+    """Request to update conversation metadata."""
+    title: Optional[str] = Field(None, max_length=255)
+    description: Optional[str] = Field(None, max_length=1000)
+    is_archived: Optional[bool] = None
 
 
 # ===== CONVERSATION ENDPOINTS =====
@@ -328,23 +324,19 @@ async def upload_file(
                 detail="Conversation not found"
             )
 
-        # Read file content
-        content = await file.read()
-        filename = file.filename or "upload"
-
-        # Validate file
-        is_valid, error_msg = CustomContentFileService.validate_file(filename, len(content))
-        if not is_valid:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_msg
-            )
+        # Create uploads directory
+        upload_dir = Path(__file__).resolve().parent.parent / "data" / "uploads" / "custom-content"
+        upload_dir.mkdir(parents=True, exist_ok=True)
 
         # Save file
-        file_id, file_path, file_size = CustomContentFileService.save_file(content, filename)
+        file_id = str(uuid.uuid4())
+        suffix = Path(file.filename or "upload").suffix.lower()
+        file_path = upload_dir / f"{file_id}{suffix}"
 
-        # Get MIME type
-        mime_type = CustomContentFileService.get_mime_type(filename)
+        # Read and save file content
+        content = await file.read()
+        with file_path.open("wb") as f:
+            f.write(content)
 
         # Create database record
         db_file = CustomContentFile(
@@ -352,11 +344,11 @@ async def upload_file(
             tenant_id=tenant_id,
             user_id=user_id,
             conversation_id=conversation_id,
-            name=filename,
+            name=file.filename or "upload",
             file_type="upload",
-            mime_type=mime_type,
-            path=file_path,
-            size=file_size,
+            mime_type=file.content_type,
+            path=str(file_path),
+            size=len(content),
             is_generated=False,
         )
         db.add(db_file)
@@ -424,102 +416,6 @@ async def get_file(
         )
 
 
-@router.get("/files/{file_id}/download")
-async def download_file(
-    file_id: str,
-    db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_current_tenant_id),
-):
-    """Download a file."""
-    try:
-        db_file = db.query(CustomContentFile).filter(
-            CustomContentFile.id == file_id,
-            CustomContentFile.tenant_id == tenant_id,
-        ).first()
-
-        if not db_file:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found"
-            )
-
-        file_path = Path(db_file.path)
-        if not file_path.exists():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found on disk"
-            )
-
-        return FileResponse(
-            path=file_path,
-            media_type=db_file.mime_type or "application/octet-stream",
-            filename=db_file.name,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error downloading file: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
-@router.patch("/files/{file_id}", response_model=FileInfo)
-async def rename_file(
-    file_id: str,
-    request: RenameFileRequest,
-    db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_current_tenant_id),
-) -> FileInfo:
-    """Rename a file."""
-    try:
-        db_file = db.query(CustomContentFile).filter(
-            CustomContentFile.id == file_id,
-            CustomContentFile.tenant_id == tenant_id,
-        ).first()
-
-        if not db_file:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found"
-            )
-
-        # Validate new name
-        if not request.new_name or len(request.new_name) > 255:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid filename"
-            )
-
-        old_name = db_file.name
-        db_file.name = request.new_name
-        db.commit()
-        db.refresh(db_file)
-
-        logger.info(f"✓ Renamed file {file_id} from {old_name} to {request.new_name}")
-
-        return FileInfo(
-            id=db_file.id,
-            name=db_file.name,
-            file_type=db_file.file_type,
-            mime_type=db_file.mime_type,
-            size=db_file.size,
-            created_at=db_file.created_at.isoformat(),
-            is_generated=db_file.is_generated,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error renaming file: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
 @router.delete("/files/{file_id}")
 async def delete_file(
     file_id: str,
@@ -540,7 +436,10 @@ async def delete_file(
             )
 
         # Delete file from disk
-        CustomContentFileService.delete_file(db_file.path)
+        file_path = Path(db_file.path)
+        if file_path.exists():
+            file_path.unlink()
+            logger.info(f"Deleted file from disk: {file_path}")
 
         # Delete from database
         db.delete(db_file)
