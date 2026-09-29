@@ -14,6 +14,7 @@ from api.skill_mapping import router as skill_mapping_router
 from api.data_access import router as data_access_router
 from api.agents import router as agents_router
 from api.agent_tests import router as agent_tests_router
+from api.agent_workflows import router as agent_workflows_router
 from services.content_governance import ContentGovernanceAgent
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -51,6 +52,9 @@ router.include_router(agents_router)
 
 # Include agent test endpoints
 router.include_router(agent_tests_router)
+
+# Include agent workflow execution routes
+router.include_router(agent_workflows_router)
 
 # Courses router disabled: dependency models removed as dead code
 # router.include_router(courses_router)

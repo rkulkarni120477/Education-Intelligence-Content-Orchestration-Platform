@@ -29,6 +29,8 @@ class AgentInfo(BaseModel):
     status: str  # active, disabled, degraded, not_configured
     workflow_count: int
     workflows: List[str]  # List of workflow names using this agent
+    assigned_workflows: List[Dict[str, Any]] = []  # Workflows this agent can execute
+    can_execute_workflows: bool = False  # Agent can execute workflows
     last_used: Optional[datetime] = None
 
     class Config:
@@ -200,7 +202,10 @@ async def list_agents(
             ).all()
 
             workflow_names = []
+            assigned_workflows = []
+
             for workflow in workflows:
+                # Check if agent is defined in workflow definition
                 if workflow.definition:
                     definition = workflow.definition
                     if isinstance(definition, dict):
@@ -209,6 +214,14 @@ async def list_agents(
                             if agent.get("name") == agent_id or agent.get("id") == agent_id:
                                 workflow_names.append(workflow.name)
                                 break
+
+                # Check if agent is assigned to execute this workflow
+                if workflow.assigned_agents and agent_id in workflow.assigned_agents:
+                    assigned_workflows.append({
+                        "workflow_id": workflow.id,
+                        "workflow_name": workflow.name,
+                        "is_automatable": workflow.is_automatable,
+                    })
 
             # Get last usage time
             last_run = db.query(AgentRun).filter(
@@ -224,6 +237,8 @@ async def list_agents(
                 status=agent_config["status"],
                 workflow_count=workflow_count,
                 workflows=workflow_names,
+                assigned_workflows=assigned_workflows,
+                can_execute_workflows=len(assigned_workflows) > 0,
                 last_used=last_run.completed_at if last_run else None,
             )
             agents_list.append(agent)

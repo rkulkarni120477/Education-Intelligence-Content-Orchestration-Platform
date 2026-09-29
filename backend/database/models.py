@@ -120,6 +120,9 @@ class Workflow(Base):
     definition = Column(JSON)  # Workflow DAG/definition
     status = Column(String(50), default="draft")  # draft, active, archived
     is_template = Column(Boolean, default=False)
+    assigned_agents = Column(JSON, default=[])  # List of agent IDs that can execute this workflow
+    execution_trigger = Column(String(50), default="manual")  # manual, event-driven, scheduled
+    is_automatable = Column(Boolean, default=False)  # Can be auto-executed by agents
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -151,7 +154,7 @@ class AgentRun(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
-    execution_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False)
+    workflow_execution_id = Column(String(36), ForeignKey("workflow_executions.id"), nullable=False)
     agent_name = Column(String(255), nullable=False)
     agent_type = Column(String(100))  # content_studio, workforce_skills, etc.
     status = Column(String(50), default="pending")  # pending, running, completed, failed
