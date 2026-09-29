@@ -274,7 +274,7 @@ class CustomContentMessage(Base):
     role = Column(String(20), nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
     message_type = Column(String(50), default="text")  # 'text', 'status_update', 'system'
-    metadata = Column(JSON, default={})  # Tool calls, step info, etc.
+    message_metadata = Column(JSON, default={})  # Tool calls, step info, file_ids, etc.
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     conversation = relationship("CustomContentConversation", back_populates="messages")

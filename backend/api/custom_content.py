@@ -55,7 +55,7 @@ class MessageInfo(BaseModel):
     content: str
     message_type: str
     created_at: str
-    metadata: Dict[str, Any] = {}
+    message_metadata: Dict[str, Any] = {}
 
     class Config:
         from_attributes = True
@@ -215,7 +215,7 @@ async def get_conversation(
                 content=msg.content,
                 message_type=msg.message_type,
                 created_at=msg.created_at.isoformat(),
-                metadata=msg.metadata or {},
+                message_metadata=msg.message_metadata or {},
             )
             for msg in (conversation.messages or [])
         ]
@@ -598,7 +598,7 @@ async def send_message(
             role="user",
             content=request.prompt,
             message_type="text",
-            metadata={"file_ids": request.file_ids} if request.file_ids else {},
+            message_metadata={"file_ids": request.file_ids} if request.file_ids else {},
         )
         db.add(user_message)
         db.commit()
@@ -655,7 +655,7 @@ async def stream_message(
                 role="user",
                 content=request.prompt,
                 message_type="text",
-                metadata={"file_ids": request.file_ids} if request.file_ids else {},
+                message_metadata={"file_ids": request.file_ids} if request.file_ids else {},
             )
             db.add(user_message)
             db.commit()
@@ -715,7 +715,7 @@ async def stream_message(
                 role="assistant",
                 content=assistant_content,
                 message_type="text",
-                metadata={
+                message_metadata={
                     "model": LLMService.get_model_info()["model_id"],
                     "file_ids": request.file_ids,
                 },
