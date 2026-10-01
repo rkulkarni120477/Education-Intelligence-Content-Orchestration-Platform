@@ -25,12 +25,13 @@ class Settings(BaseSettings):
 
     # AWS Configuration
     AWS_REGION: str = "us-east-1"
+    AWS_BEARER_TOKEN_BEDROCK: Optional[str] = None
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
 
     # LLM Configuration (AWS Bedrock)
     LLM_PROVIDER: str = "bedrock"  # Options: bedrock, openai
-    LLM_MODEL: str = "anthropic.claude-opus-5-sonnet-20241022-v2:0"
+    LLM_MODEL: str = "us.anthropic.claude-sonnet-4-6"
     LLM_TEMPERATURE: float = 0.7
 
     # LangChain Configuration (Legacy)

@@ -1,38 +1,20 @@
 """LLM service for AWS Bedrock integration with streaming support."""
 
-import json
 import logging
 import os
 from typing import Generator, List, Optional
-from datetime import datetime
-
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
 
 from database.models import CustomContentFile
+from services.bedrock_runtime import BEDROCK_MODEL_ID, BEDROCK_REGION, converse, response_text
 
 logger = logging.getLogger(__name__)
 
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
-BEDROCK_REGION = os.getenv("AWS_REGION", "us-east-1")
 MAX_FILE_CONTEXT_SIZE = int(os.getenv("LLM_MAX_FILE_CONTEXT_SIZE", 1000000))
 STREAM_TIMEOUT = int(os.getenv("LLM_RESPONSE_TIMEOUT", 300))
 
 
 class LLMService:
     """Handle LLM operations via AWS Bedrock."""
-
-    _bedrock_client = None
-
-    @classmethod
-    def _get_bedrock_client(cls):
-        """Lazy-load Bedrock client."""
-        if cls._bedrock_client is None:
-            cls._bedrock_client = boto3.client(
-                "bedrock-runtime",
-                region_name=BEDROCK_REGION,
-            )
-        return cls._bedrock_client
 
     @staticmethod
     def _build_file_context(files: List[CustomContentFile]) -> str:
@@ -158,70 +140,22 @@ class LLMService:
                 f"{len(conversation_history)} history items"
             )
 
-            # Call Bedrock with streaming
-            client = cls._get_bedrock_client()
-
-            response = client.invoke_model_with_response_stream(
-                modelId=BEDROCK_MODEL_ID,
-                contentType="application/json",
-                accept="application/json",
-                body=json.dumps({
-                    "anthropic_version": "bedrock-2023-06-01",
-                    "max_tokens": 2048,
-                    "system": system_prompt,
-                    "messages": messages,
-                }),
+            response = converse(
+                BEDROCK_MODEL_ID,
+                messages,
+                system=system_prompt,
+                inference_config={"maxTokens": 2048, "temperature": 0.7},
             )
+            text = response_text(response)
+            if text:
+                yield text
 
-            # Parse streaming response
-            usage_stats = {"input_tokens": 0, "output_tokens": 0}
-
-            for event in response.get("body"):
-                try:
-                    chunk = json.loads(event["chunk"]["bytes"])
-
-                    # Handle different event types
-                    if chunk.get("type") == "content_block_delta":
-                        delta = chunk.get("delta", {})
-                        if delta.get("type") == "text_delta":
-                            text = delta.get("text", "")
-                            if text:
-                                yield text
-
-                    elif chunk.get("type") == "message_delta":
-                        # End of message, capture usage
-                        usage = chunk.get("usage", {})
-                        if usage:
-                            usage_stats["output_tokens"] = usage.get("output_tokens", 0)
-
-                    elif chunk.get("type") == "message_start":
-                        # Start of message
-                        usage = chunk.get("message", {}).get("usage", {})
-                        if usage:
-                            usage_stats["input_tokens"] = usage.get("input_tokens", 0)
-
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Failed to parse chunk: {e}")
-                    continue
-                except (KeyError, ValueError) as e:
-                    logger.warning(f"Error processing stream chunk: {e}")
-                    continue
-
-            # Log completion
+            usage_stats = response.get("usage", {})
             logger.info(
                 f"[{tenant_id}] Stream complete. Usage: "
-                f"input={usage_stats['input_tokens']}, output={usage_stats['output_tokens']}"
+                f"input={usage_stats.get('inputTokens', 0)}, "
+                f"output={usage_stats.get('outputTokens', 0)}"
             )
-
-        except ClientError as e:
-            error_code = e.response.get("Error", {}).get("Code", "Unknown")
-            error_msg = e.response.get("Error", {}).get("Message", str(e))
-            logger.error(f"[{tenant_id}] Bedrock API error ({error_code}): {error_msg}")
-            yield f"\n\n**Error**: Failed to generate response: {error_msg}"
-
-        except BotoCoreError as e:
-            logger.error(f"[{tenant_id}] Bedrock connection error: {str(e)}")
-            yield "\n\n**Error**: Connection failed. Please try again."
 
         except Exception as e:
             logger.error(f"[{tenant_id}] Unexpected error in stream_message: {str(e)}", exc_info=True)

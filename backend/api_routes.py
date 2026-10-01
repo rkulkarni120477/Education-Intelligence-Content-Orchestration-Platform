@@ -1036,38 +1036,6 @@ async def get_coverage_analytics(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# REMOVED: This endpoint is now handled by data_access.py router
-# The hardcoded mock data has been replaced with real database queries
-# See: backend/api/data_access.py for the actual implementation
-
-
-@router.get("/v1/content/jobs", response_model=Dict[str, Any])
-async def get_content_jobs(
-    status: Optional[str] = None,
-    x_tenant_id: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
-):
-    """Get content ingestion jobs"""
-    try:
-        jobs = [
-            {
-                "id": "job_1",
-                "name": "Q4 Curriculum Import",
-                "status": "processing",
-                "progress": 65,
-                "created_at": datetime.now().isoformat(),
-            },
-        ]
-        return {
-            "status": "success",
-            "jobs": jobs,
-            "total": 1,
-        }
-    except Exception as e:
-        logger.error(f"Error getting content jobs: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
 @router.post("/v1/content/upload", response_model=Dict[str, Any])
 async def upload_content(
     background_tasks: BackgroundTasks,

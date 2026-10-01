@@ -12,6 +12,7 @@ from database.models import (
 )
 from auth.tenant_context import get_current_tenant_id
 from services.agent_execution_service import get_agent_execution_status
+from services.bedrock_runtime import BEDROCK_MODEL_ID
 import logging
 
 logger = logging.getLogger(__name__)
@@ -157,11 +158,7 @@ REGISTERED_AGENTS = {
 AI_PROVIDERS = {
     "aws-bedrock": {
         "provider": "AWS Bedrock",
-        "models": [
-            "anthropic.claude-opus-5-sonnet-20241022-v2:0",
-            "anthropic.claude-3-5-sonnet-20241022-v2:0",
-            "anthropic.claude-3-sonnet-20240229-v1:0"
-        ],
+        "models": [BEDROCK_MODEL_ID],
         "status": "active",
     },
     "openai": {
@@ -261,17 +258,23 @@ async def list_agents(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/execution-status", response_model=Dict[str, Any])
+async def get_execution_status():
+    """Get current agent execution status for the UI Agent Box."""
+    try:
+        return get_agent_execution_status()
+    except Exception as e:
+        logger.error(f"Error getting execution status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{agent_id}", response_model=Dict[str, Any])
 async def get_agent_details(
     agent_id: str,
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id),
 ):
-    """
-    Get detailed information about a specific agent.
-
-    Includes description, workflows using it, recent runs, and configuration.
-    """
+    """Get detailed information about a specific agent."""
     try:
         if agent_id not in REGISTERED_AGENTS:
             raise HTTPException(status_code=404, detail="Agent not found")
@@ -390,7 +393,7 @@ async def get_ai_statistics(
 
             stat = AIProviderStats(
                 provider="AWS Bedrock",
-                model="anthropic.claude-opus-5-sonnet-20241022-v2:0",
+                model=BEDROCK_MODEL_ID,
                 credential_label="aws-bedrock-prod",  # Safe label only
                 workflow_agent=agent_id,
                 requests=request_count,
@@ -427,18 +430,3 @@ async def get_ai_statistics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/execution-status", response_model=Dict[str, Any])
-async def get_execution_status():
-    """
-    Get current agent execution status for UI Agent Box.
-
-    Returns real-time execution status including agent name, progress, and execution ID.
-    This endpoint is polled by the frontend to display the Agent Box.
-    """
-    try:
-        status = get_agent_execution_status()
-        logger.debug(f"Agent execution status: {status}")
-        return status
-    except Exception as e:
-        logger.error(f"Error getting execution status: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))

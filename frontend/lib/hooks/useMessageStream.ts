@@ -32,19 +32,24 @@ export const useMessageStream = (conversationId: string | null) => {
 
       try {
         // Create EventSource for SSE
-        const apiUrl = `/api/v1/custom-content/conversations/${conversationId}/messages/stream`
-        const body = new URLSearchParams({
-          prompt: prompt,
-          file_ids: JSON.stringify(fileIds),
-        })
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/custom-content/conversations/${conversationId}/messages/stream`
+
+        const tenantId = apiClient.getTenantId()
+        const token = apiClient.getToken()
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+        if (tenantId) headers['X-Tenant-ID'] = tenantId
+        if (token) headers.Authorization = `Bearer ${token}`
 
         // Use fetch for streaming SSE
         const response = await fetch(apiUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: body.toString(),
+          headers,
+          body: JSON.stringify({
+            prompt: prompt,
+            file_ids: fileIds,
+          }),
         })
 
         if (!response.ok) {

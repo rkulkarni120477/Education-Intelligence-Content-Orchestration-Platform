@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useCustomContentStore } from '@/lib/stores/custom-content'
 import { FileExplorer } from '@/components/CustomContentDevelopment/FileExplorer'
 import { Editor } from '@/components/CustomContentDevelopment/Editor'
@@ -12,21 +12,34 @@ export default function CustomContentDevelopmentPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
+  const initialized = useRef(false)
 
   const {
-    conversations,
     activeConversationId,
     createConversation,
     selectConversation,
+    listConversations,
   } = useCustomContentStore()
 
-  // Initialize: create or restore conversation
+  // Reload persisted conversations and recover from stale active IDs.
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     const initializeConversation = async () => {
       setIsLoading(true)
       try {
-        // If no active conversation, create one
-        if (!activeConversationId && conversations.length === 0) {
+        await listConversations()
+
+        const state = useCustomContentStore.getState()
+        const activeConversation = state.conversations.find(
+          (conversation) => conversation.id === state.activeConversationId
+        )
+        const conversationToSelect = activeConversation ?? state.conversations[0]
+
+        if (conversationToSelect) {
+          await selectConversation(conversationToSelect.id)
+        } else {
           await createConversation({
             title: 'New Conversation',
             description: 'Custom content development session',
@@ -41,8 +54,8 @@ export default function CustomContentDevelopmentPage() {
       }
     }
 
-    initializeConversation()
-  }, [activeConversationId, conversations.length, createConversation])
+    void initializeConversation()
+  }, [createConversation, listConversations, selectConversation])
 
   if (error) {
     return (

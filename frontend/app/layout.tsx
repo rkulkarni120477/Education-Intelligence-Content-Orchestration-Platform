@@ -5,6 +5,9 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Education Intelligence & Content Orchestration Platform',
   description: 'AI-powered educational content development and workflow orchestration',
+  icons: {
+    icon: '/academian-logo-icon.png',
+  },
 }
 
 export default function RootLayout({

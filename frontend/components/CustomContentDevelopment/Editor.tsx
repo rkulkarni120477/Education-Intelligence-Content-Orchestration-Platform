@@ -106,18 +106,20 @@ export const Editor: React.FC<EditorProps> = ({ conversationId, selectedFileId }
       {/* Tabs */}
       <div className="border-b border-border bg-surface flex overflow-x-auto">
         {openTabs.map((tab) => (
-          <button
+          <div
             key={tab.id}
-            onClick={() => setActiveTabId(tab.id)}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors text-sm whitespace-nowrap ${
               activeTabId === tab.id
                 ? 'border-primary text-ink'
                 : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
-            <span>{tab.name}</span>
-            {tab.isDirty && <span className="w-2 h-2 rounded-full bg-primary"></span>}
+            <button type="button" onClick={() => setActiveTabId(tab.id)} className="flex items-center gap-2">
+              <span>{tab.name}</span>
+              {tab.isDirty && <span className="w-2 h-2 rounded-full bg-primary"></span>}
+            </button>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 handleCloseTab(tab.id)
@@ -126,7 +128,7 @@ export const Editor: React.FC<EditorProps> = ({ conversationId, selectedFileId }
             >
               ✕
             </button>
-          </button>
+          </div>
         ))}
       </div>
 

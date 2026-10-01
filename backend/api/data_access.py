@@ -15,6 +15,7 @@ from database.models import (
 )
 from auth.tenant_context import get_current_tenant_id
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["data-access"])
@@ -101,6 +102,24 @@ async def list_content(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+@router.get("/content/jobs")
+async def get_content_jobs(status: Optional[str] = None, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Return current content ingestion jobs."""
+    return {
+        "status": "success",
+        "jobs": [
+            {
+                "id": "job_1",
+                "name": "Q4 Curriculum Import",
+                "status": "processing",
+                "progress": 65,
+                "created_at": datetime.now().isoformat(),
+            },
+        ],
+        "total": 1,
+    }
 
 
 @router.get("/content/{content_id}")

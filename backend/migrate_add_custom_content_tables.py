@@ -70,7 +70,7 @@ def migrate():
                         role VARCHAR(20) NOT NULL,
                         content TEXT NOT NULL,
                         message_type VARCHAR(50) DEFAULT 'text',
-                        metadata JSON DEFAULT '{}',
+                        message_metadata JSON DEFAULT '{}',
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (tenant_id) REFERENCES tenants(id),
                         FOREIGN KEY (conversation_id) REFERENCES custom_content_conversations(id)

@@ -8,8 +8,8 @@ goals, and workforce role descriptions.
 from typing import Dict, List, Any, Optional
 import json
 import logging
-import boto3
 from pydantic import BaseModel
+from services.bedrock_runtime import BEDROCK_MODEL_ID, converse, response_text
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class RequirementsExtractionResult(BaseModel):
 class RequirementsExtractionService:
     """Service for extracting institution requirements using AWS Bedrock."""
 
-    def __init__(self, model: str = "anthropic.claude-opus-5-sonnet-20241022-v2:0"):
+    def __init__(self, model: str = BEDROCK_MODEL_ID):
         """
         Initialize the service.
 
@@ -49,7 +49,6 @@ class RequirementsExtractionService:
             model: AWS Bedrock model ID to use for extraction
         """
         self.model = model
-        self.client = boto3.client('bedrock-runtime', region_name='us-east-1')
 
     def extract_requirements(
         self,
@@ -130,24 +129,21 @@ Format your response as a JSON object matching this structure:
                 {"role": "user", "content": system_prompt + "\n\n" + user_message}
             ]
 
-            response = self.client.converse(
-                modelId=self.model,
+            response = converse(
+                self.model,
                 messages=messages,
-                inferenceConfig={
-                    "maxTokens": 4096,
-                    "temperature": 0.7,
-                }
+                inference_config={"maxTokens": 4096, "temperature": 0.7},
             )
 
-            response_text = response['output']['message']['content'][0]['text']
+            response_text_value = response_text(response)
 
             # Parse JSON response
             try:
                 # Extract JSON from response (may have surrounding text)
-                json_start = response_text.find('{')
-                json_end = response_text.rfind('}') + 1
+                json_start = response_text_value.find('{')
+                json_end = response_text_value.rfind('}') + 1
                 if json_start >= 0 and json_end > json_start:
-                    json_str = response_text[json_start:json_end]
+                    json_str = response_text_value[json_start:json_end]
                     extracted = json.loads(json_str)
                 else:
                     raise ValueError("No JSON found in response")

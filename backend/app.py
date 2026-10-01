@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -100,6 +103,11 @@ async def startup_event():
             init_db()
         else:
             logger.info(f"Database already exists: {db_path}, skipping initialization")
+
+        # Run migrations
+        from migrate_add_custom_content_tables import migrate
+        logger.info("Running custom content migrations...")
+        migrate()
     except Exception as e:
         logger.warning(f"Database initialization warning (non-blocking): {str(e)}")
     logger.info("Startup event completed")
