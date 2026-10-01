@@ -8,8 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from database.db import get_db
+from services.multi_agent_orchestrator import WORKFLOW_REGISTRY
+from services.workflow_agent_registry import AGENT_REGISTRY
 import logging
-import uuid
+import os
 from datetime import datetime
 
 # Import AI services with error handling
@@ -82,48 +84,53 @@ async def run_all_tests(
     db: Session = Depends(get_db),
 ):
     """
-    Run all agent tests and return results.
+    Verify that registered agent implementations are wired into workflows.
 
-    Tests all 13 registered agents with sample data to verify they're working.
+    This is a readiness check; it does not invoke Bedrock or incur model cost.
     """
     try:
-        logger.info("Starting comprehensive agent test suite...")
+        logger.info("Starting agent registry and workflow readiness checks...")
         results = []
+        workflow_nodes = {
+            workflow_id: set(plan.graph_builder().nodes)
+            for workflow_id, plan in WORKFLOW_REGISTRY.items()
+        }
+        has_bedrock_credentials = bool(
+            os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+            or (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
+        )
 
-        # Test 1: Validation Agents (Passive - just return success)
-        results.append(test_request_validator())
-        results.append(test_package_inspector())
-
-        # Test 2: Requirements Extraction (AI-Powered)
-        results.append(test_requirements_extractor())
-
-        # Test 3: Course Ingestion
-        results.append(test_course_ingestion())
-
-        # Test 4: Context Retrieval
-        results.append(test_context_retriever())
-
-        # Test 5: Skill Mapping (AI-Powered)
-        results.append(test_skill_mapper())
-
-        # Test 6: Gap Analysis
-        results.append(test_gap_analyzer())
-
-        # Test 7: Recommendations (AI-Powered)
-        results.append(test_recommendation_engine())
-
-        # Test 8-13: Other agents
-        results.append(test_content_generator())
-        results.append(test_accessibility_auditor())
-        results.append(test_validator())
-        results.append(test_data_persister())
-        results.append(test_audit_logger())
+        for agent_id, agent in AGENT_REGISTRY.items():
+            registered = callable(agent.execute)
+            workflow_ids = [
+                workflow_id
+                for workflow_id, plan in WORKFLOW_REGISTRY.items()
+                if agent_id in plan.agent_ids and agent_id in workflow_nodes[workflow_id]
+            ]
+            credentials_ready = agent.agent_type != "ai_powered" or has_bedrock_credentials
+            passed = registered and bool(workflow_ids) and credentials_ready
+            results.append({
+                "agent_id": agent_id,
+                "agent_name": agent.name,
+                "agent_type": agent.agent_type,
+                "status": "passed" if passed else "failed",
+                "passed": passed,
+                "error_message": None if passed else "Agent is not wired to a workflow or required Bedrock credentials are missing",
+                "duration_ms": 0,
+                "timestamp": datetime.utcnow().isoformat(),
+                "details": {
+                    "has_callable": registered,
+                    "workflows": workflow_ids,
+                    "bedrock_credentials_configured": credentials_ready if agent.agent_type == "ai_powered" else None,
+                    "test_type": "registry_and_graph_readiness",
+                },
+            })
 
         # Calculate summary
         passed_count = sum(1 for r in results if r["passed"])
         total_count = len(results)
 
-        logger.info(f"✓ Test suite completed: {passed_count}/{total_count} agents passed")
+        logger.info(f"Agent readiness checks completed: {passed_count}/{total_count} agents ready")
 
         return {
             "status": "completed",

@@ -38,6 +38,41 @@ class RequirementsExtractionResult(BaseModel):
     extraction_metadata: Dict[str, Any]
 
 
+def _as_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=True)
+    return str(value)
+
+
+def _string_records(items: Any) -> List[Dict[str, str]]:
+    if not isinstance(items, list):
+        return []
+    return [
+        {str(key): _as_text(value) for key, value in item.items()}
+        for item in items
+        if isinstance(item, dict)
+    ]
+
+
+def _text_items(items: Any, preferred_keys: tuple[str, ...]) -> List[str]:
+    if not isinstance(items, list):
+        return []
+    normalized = []
+    for item in items:
+        if isinstance(item, dict):
+            value = next((item[key] for key in preferred_keys if item.get(key)), item)
+        else:
+            value = item
+        text = _as_text(value)
+        if text:
+            normalized.append(text)
+    return normalized
+
+
 class RequirementsExtractionService:
     """Service for extracting institution requirements using AWS Bedrock."""
 
@@ -95,7 +130,10 @@ For each extracted item, provide:
 - Confidence level (0-1)
 - Any questions that need clarification
 
-Format your response as a JSON object matching this structure:
+Return only a JSON object matching this structure. Every value inside target_roles,
+required_skills, and ambiguities must be a string. accessibility_requirements and
+style_guidelines must be lists of strings. Do not add confidence or clarification_questions
+properties to the nested records.
 {
   "program_description": "...",
   "target_roles": [{"name": "...", "description": "...", "context": "..."}],
@@ -165,13 +203,19 @@ Format your response as a JSON object matching this structure:
             # Build result
             result = RequirementsExtractionResult(
                 program_name=program_name,
-                program_description=extracted.get("program_description", program_name),
-                target_roles=extracted.get("target_roles", []),
-                required_skills=extracted.get("required_skills", []),
+                program_description=_as_text(extracted.get("program_description") or program_name),
+                target_roles=_string_records(extracted.get("target_roles", [])),
+                required_skills=_string_records(extracted.get("required_skills", [])),
                 constraints=extracted.get("constraints", {}),
-                accessibility_requirements=extracted.get("accessibility_requirements", []),
-                style_guidelines=extracted.get("style_guidelines", []),
-                ambiguities=extracted.get("ambiguities", []),
+                accessibility_requirements=_text_items(
+                    extracted.get("accessibility_requirements", []),
+                    ("requirement", "description", "content", "text"),
+                ),
+                style_guidelines=_text_items(
+                    extracted.get("style_guidelines", []),
+                    ("guideline", "description", "content", "text"),
+                ),
+                ambiguities=_string_records(extracted.get("ambiguities", [])),
                 confidence=float(extracted.get("confidence", 0.0)),
                 extraction_metadata={
                     "model": self.model,

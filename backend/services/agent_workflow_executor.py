@@ -2,7 +2,8 @@
 
 from database.db import SessionLocal
 from database.models import Workflow, WorkflowExecution, AgentRun, Tenant
-from workflows.workforce_alignment_graph import create_workforce_alignment_graph
+from services.multi_agent_orchestrator import MultiAgentOrchestrator
+from services.workflow_agent_registry import AGENT_REGISTRY
 from workflows.workforce_alignment_state import WorkforceAlignmentState
 from auth.tenant_context import TenantContext
 import logging
@@ -45,6 +46,9 @@ class AgentWorkflowExecutor:
             db = SessionLocal()
 
         try:
+            if agent_id not in AGENT_REGISTRY:
+                raise ValueError(f"Agent {agent_id} is not registered")
+
             # Set tenant context
             TenantContext.set_tenant(tenant_id)
 
@@ -115,10 +119,43 @@ class AgentWorkflowExecutor:
                 started_at=datetime.utcnow(),
             )
 
-            # Execute the workflow graph
-            logger.info(f"⚙️  Invoking workflow graph for execution {execution_id}")
-            workflow_graph = create_workforce_alignment_graph()
-            result = workflow_graph.invoke(state)
+            # Dispatch the workflow through the shared multi-agent orchestrator.
+            workflow_type = (workflow.definition or {}).get("workflow_type", "workforce_alignment")
+            logger.info(
+                f"⚙️  Invoking {workflow_type} multi-agent workflow for execution {execution_id}"
+            )
+
+            def record_agent_event(node_id: str, run_status: str, snapshot: Dict[str, Any]):
+                from services.workflow_agent_registry import AGENT_REGISTRY
+
+                agent = AGENT_REGISTRY[node_id]
+                now = datetime.utcnow()
+                db.add(AgentRun(
+                    id=str(uuid.uuid4()),
+                    tenant_id=tenant_id,
+                    workflow_execution_id=execution_id,
+                    agent_name=node_id,
+                    agent_type=agent.agent_type,
+                    status=run_status,
+                    input_data={"workflow_type": workflow_type},
+                    output_data={
+                        "current_node": snapshot.get("current_node"),
+                        "workflow_status": snapshot.get("workflow_status"),
+                    },
+                    started_at=now,
+                    completed_at=now,
+                ))
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                    raise
+
+            result = await MultiAgentOrchestrator.execute_async(
+                workflow_type,
+                state,
+                on_agent_event=record_agent_event,
+            )
 
             # Extract result status
             workflow_status = (

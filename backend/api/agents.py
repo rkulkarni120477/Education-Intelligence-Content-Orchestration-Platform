@@ -13,6 +13,7 @@ from database.models import (
 from auth.tenant_context import get_current_tenant_id
 from services.agent_execution_service import get_agent_execution_status
 from services.bedrock_runtime import BEDROCK_MODEL_ID
+from services.workflow_agent_registry import AGENT_REGISTRY
 import logging
 
 logger = logging.getLogger(__name__)
@@ -70,88 +71,15 @@ class AIStatsResponse(BaseModel):
     end_date: datetime
 
 
-# ===== HARDCODED AGENT REGISTRY =====
-# In production, this would be loaded from database or configuration
-
+# The API catalog and graph execution share one source of truth.
 REGISTERED_AGENTS = {
-    "validate_request_and_access": {
-        "name": "Request Validator",
-        "description": "Validates workflow request, tenant context, and user permissions",
-        "agent_type": "validation",
+    agent_id: {
+        "name": agent.name,
+        "description": agent.description,
+        "agent_type": agent.agent_type,
         "status": "active",
-    },
-    "inspect_package_contents": {
-        "name": "Package Inspector",
-        "description": "Inspects course package contents and validates format",
-        "agent_type": "validation",
-        "status": "active",
-    },
-    "extract_requirements": {
-        "name": "Requirements Extractor",
-        "description": "Extracts institution requirements using Claude AI",
-        "agent_type": "ai_powered",
-        "status": "active",
-    },
-    "ingest_and_normalize_course_materials": {
-        "name": "Course Ingestion Engine",
-        "description": "Ingests and normalizes course materials from packages",
-        "agent_type": "data_processing",
-        "status": "active",
-    },
-    "retrieve_authorized_context": {
-        "name": "Context Retriever",
-        "description": "Retrieves authorized context for analysis",
-        "agent_type": "retrieval",
-        "status": "active",
-    },
-    "map_workforce_skills": {
-        "name": "Skill Mapper",
-        "description": "Maps workforce skills to course content using AI",
-        "agent_type": "ai_powered",
-        "status": "active",
-    },
-    "calculate_coverage_and_gaps": {
-        "name": "Gap Analyzer",
-        "description": "Calculates skill coverage and identifies gaps",
-        "agent_type": "analysis",
-        "status": "active",
-    },
-    "draft_recommendations": {
-        "name": "Recommendation Engine",
-        "description": "Drafts course improvement recommendations",
-        "agent_type": "ai_powered",
-        "status": "active",
-    },
-    "generate_course_updates": {
-        "name": "Content Generator",
-        "description": "Generates updated course materials",
-        "agent_type": "data_processing",
-        "status": "active",
-    },
-    "accessibility_check": {
-        "name": "Accessibility Auditor",
-        "description": "Runs accessibility audit on course materials",
-        "agent_type": "compliance",
-        "status": "active",
-    },
-    "content_governance": {
-        "name": "Content Governance Agent",
-        "description": "Checks indexed content quality and recommends human approval",
-        "agent_type": "compliance",
-        "status": "active",
-    },
-    "persist_artifacts": {
-        "name": "Data Persister",
-        "description": "Persists workflow results to database",
-        "agent_type": "storage",
-        "status": "active",
-    },
-    "emit_audit_events": {
-        "name": "Audit Logger",
-        "description": "Emits audit events for compliance tracking",
-        "agent_type": "compliance",
-        "status": "active",
-    },
+    }
+    for agent_id, agent in AGENT_REGISTRY.items()
 }
 
 # AI Provider configurations (safe, non-secret metadata)
@@ -202,23 +130,36 @@ async def list_agents(
             assigned_workflows = []
 
             for workflow in workflows:
-                # Check if agent is defined in workflow definition
+                is_in_workflow = False
+
+                # Definitions describe agents that participate in the workflow.
                 if workflow.definition:
                     definition = workflow.definition
                     if isinstance(definition, dict):
-                        agents = definition.get("agents", [])
-                        for agent in agents:
-                            if agent.get("name") == agent_id or agent.get("id") == agent_id:
-                                workflow_names.append(workflow.name)
+                        workflow_agents = definition.get("agents", [])
+                        for workflow_agent in workflow_agents:
+                            if isinstance(workflow_agent, dict):
+                                if (
+                                    workflow_agent.get("name") == agent_id
+                                    or workflow_agent.get("id") == agent_id
+                                ):
+                                    is_in_workflow = True
+                                    break
+                            elif workflow_agent == agent_id:
+                                is_in_workflow = True
                                 break
 
-                # Check if agent is assigned to execute this workflow
+                # Explicit assignments also associate an agent with a workflow.
                 if workflow.assigned_agents and agent_id in workflow.assigned_agents:
+                    is_in_workflow = True
                     assigned_workflows.append({
                         "workflow_id": workflow.id,
                         "workflow_name": workflow.name,
                         "is_automatable": workflow.is_automatable,
                     })
+
+                if is_in_workflow:
+                    workflow_names.append(workflow.name)
 
             # Get last usage time
             last_run = db.query(AgentRun).filter(

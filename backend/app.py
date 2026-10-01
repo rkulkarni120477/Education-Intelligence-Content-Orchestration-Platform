@@ -25,6 +25,9 @@ from database.models import User, Project, Workflow, Content, Skill, WorkflowExe
 # Note: Lesson now defined in models.py as part of core domain model
 # from database.content_models import Course, Unit, Lesson  # Commented to avoid model conflicts
 from services.email_service import get_email_service
+from services.multi_agent_orchestrator import MultiAgentOrchestrator, UnsupportedWorkflowError
+from services.workflow_agent_registry import AGENT_REGISTRY
+from workflows.workforce_alignment_state import WorkforceAlignmentState
 from middleware.tenant_middleware import TenantMiddleware
 from api_routes import router as api_router
 
@@ -1392,6 +1395,7 @@ class CreateWorkflowRequest(BaseModel):
     name: str
     description: Optional[str] = None
     status: Optional[str] = "draft"
+    workflow_type: Optional[str] = "workforce_alignment"
 
 
 @app.get("/api/workflows")
@@ -1428,10 +1432,11 @@ async def create_workflow(
     """Create a new workflow"""
     try:
         workflow = Workflow(
+            tenant_id=current_user.tenant_id,
             name=req.name,
             description=req.description,
             creator_id=current_user.id,
-            definition={},
+            definition={"workflow_type": req.workflow_type} if req.workflow_type else {},
             status=req.status or "draft"
         )
         db.add(workflow)
@@ -1514,26 +1519,109 @@ async def execute_workflow(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Execute a workflow"""
-    workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    """Execute a registered multi-agent workflow."""
+    workflow = db.query(Workflow).filter(
+        Workflow.id == workflow_id,
+        Workflow.tenant_id == current_user.tenant_id,
+        Workflow.creator_id == current_user.id,
+    ).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    orchestrator = WorkflowOrchestrator(db)
-    execution_id = str(uuid.uuid4())
+    definition = workflow.definition or {}
+    workflow_type = definition.get("workflow_type") or input_data.get("workflow_type")
+    if not workflow_type:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Workflow has no workflow_type. Available: {[plan['id'] for plan in MultiAgentOrchestrator.list_workflows()]}",
+        )
+    available_workflow_types = {
+        plan["id"] for plan in MultiAgentOrchestrator.list_workflows()
+    }
+    if workflow_type not in available_workflow_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported workflow_type '{workflow_type}'. Available: {sorted(available_workflow_types)}",
+        )
 
-    # Execute workflow asynchronously
-    result = await orchestrator.execute_workflow(
-        execution_id,
-        workflow_id,
-        workflow.definition,
-        input_data
+    execution_id = str(uuid.uuid4())
+    tenant_id = current_user.tenant_id
+    state = WorkforceAlignmentState(
+        tenant_id=tenant_id,
+        request_id=execution_id,
+        initiating_user_id=current_user.id,
+        workflow_execution_id=execution_id,
+        program_id=str(input_data.get("program_id", "")),
+        program_name=str(input_data.get("program_name", "")),
+        course_ids=input_data.get("course_ids", []),
+        input_package_id=str(input_data.get("input_package_id", "")),
+        input_package_format=str(input_data.get("input_package_format", "zip")),
+        input_skill_framework_id=str(input_data.get("input_skill_framework_id", "")),
+        input_style_guide_id=input_data.get("input_style_guide_id"),
+        started_at=datetime.utcnow(),
     )
+    execution = WorkflowExecution(
+        id=execution_id,
+        workflow_id=workflow.id,
+        tenant_id=tenant_id,
+        status="running",
+        input_data=input_data,
+        started_at=state.started_at,
+    )
+    db.add(execution)
+    db.commit()
+
+    def record_agent_event(agent_id: str, run_status: str, snapshot: Dict[str, Any]):
+        agent = AGENT_REGISTRY[agent_id]
+        now = datetime.utcnow()
+        db.add(AgentRun(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            workflow_execution_id=execution_id,
+            agent_name=agent_id,
+            agent_type=agent.agent_type,
+            status=run_status,
+            input_data={"workflow_type": workflow_type, "execution_id": execution_id},
+            output_data={
+                "current_node": snapshot.get("current_node"),
+                "workflow_status": snapshot.get("workflow_status"),
+                "completed_nodes": snapshot.get("completed_nodes", []),
+            },
+            started_at=now,
+            completed_at=now,
+        ))
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+    try:
+        result = await MultiAgentOrchestrator.execute_async(
+            workflow_type,
+            state,
+            on_agent_event=record_agent_event,
+        )
+        execution.status = result.get("workflow_status", "completed")
+        execution.output_data = dict(result)
+        execution.error_message = result.get("error_message")
+        execution.completed_at = datetime.utcnow()
+        db.commit()
+    except UnsupportedWorkflowError as error:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(error))
+    except Exception as error:
+        execution.status = "failed"
+        execution.error_message = str(error)
+        execution.completed_at = datetime.utcnow()
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Workflow execution failed: {error}")
 
     return {
         "execution_id": execution_id,
-        "status": result.status,
-        "results": {k: v.dict() for k, v in result.results.items()}
+        "workflow_type": workflow_type,
+        "status": execution.status,
+        "results": dict(result),
     }
 
 

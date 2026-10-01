@@ -345,6 +345,13 @@ def calculate_coverage_and_gaps(state: WorkforceAlignmentState) -> WorkforceAlig
             }
             for gap in state.critical_gaps_identified or []
         ]
+        state.calculated_gaps = gaps
+        state.coverage_analysis = {
+            "coverage_by_skill": state.coverage_by_skill,
+            "overall_coverage": state.overall_coverage_percentage,
+            "covered_skills": state.covered_skills,
+            "uncovered_skills": state.uncovered_skills,
+        }
 
         # Generate recommendations
         recommendations_result = recommendations_service.generate_recommendations(

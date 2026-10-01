@@ -17,6 +17,7 @@ from workflows.nodes import (
     calculate_coverage_and_gaps,
 )
 from services.recommendations import RecommendationsService
+from services.bedrock_runtime import BEDROCK_MODEL_ID, converse, response_text
 from services.database_persistence import DatabasePersistenceService
 from datetime import datetime
 import logging
@@ -99,6 +100,11 @@ def mapping_decision(state: WorkforceAlignmentState) -> str:
         return "abort"
 
 
+def route_after_agent(state: WorkforceAlignmentState) -> str:
+    """Stop the graph immediately when an agent marks the workflow failed."""
+    return "failed" if state.workflow_status == "failed" else "continue"
+
+
 # ===== PHASE 5+: RECOMMENDATIONS & FINALIZATION NODES =====
 
 def draft_recommendations(state: WorkforceAlignmentState) -> WorkforceAlignmentState:
@@ -106,18 +112,9 @@ def draft_recommendations(state: WorkforceAlignmentState) -> WorkforceAlignmentS
     try:
         state.current_node = "draft_recommendations"
         logger.info("Drafting course improvement recommendations...")
-
-        # Use RecommendationsService to generate recommendations
-        service = RecommendationsService()
-        recommendations = service.generate_recommendations(
-            skill_gaps=state.calculated_gaps or [],
-            coverage_analysis=state.coverage_analysis or {},
-            learning_objectives=state.extracted_learning_objectives or [],
-        )
-
-        state.drafted_recommendations = recommendations
+        state.drafted_recommendations = [dict(item) for item in state.recommendations]
         state.completed_nodes.append("draft_recommendations")
-        logger.info(f"✓ Recommendations drafted: {len(recommendations)} recommendations")
+        logger.info(f"✓ Recommendations drafted: {len(state.drafted_recommendations)} recommendations")
 
         return state
 
@@ -150,11 +147,27 @@ def generate_course_updates(state: WorkforceAlignmentState) -> WorkforceAlignmen
             if state.human_decision and r.get("id") in state.human_decision.get("approved_recommendations", [])
         ] if state.human_decision else (state.drafted_recommendations or [])
 
-        # Generate updated course structure, materials, assessments
+        prompt = {
+            "course": state.program_name,
+            "course_structure": state.course_hierarchy_data,
+            "approved_recommendations": approved_recs,
+            "learning_objectives": state.extracted_learning_objectives,
+        }
+        response = converse(
+            BEDROCK_MODEL_ID,
+            [{"role": "user", "content": str(prompt)}],
+            system=(
+                "You are a curriculum content generator. Propose concise, actionable "
+                "course updates that apply the approved recommendations. Return a "
+                "structured summary with proposed modules, lessons, and assessments."
+            ),
+            inference_config={"maxTokens": 2048, "temperature": 0.3},
+        )
+
         state.generated_course_updates = {
             "updated_structure": state.course_hierarchy_data,
             "applied_recommendations": [r.get("id") for r in approved_recs],
-            "update_summary": f"Applied {len(approved_recs)} recommendations to course",
+            "update_summary": response_text(response),
             "generated_at": datetime.utcnow().isoformat(),
         }
 
@@ -176,20 +189,25 @@ def accessibility_check(state: WorkforceAlignmentState) -> WorkforceAlignmentSta
         state.current_node = "accessibility_check"
         logger.info("Running accessibility audit...")
 
-        # Placeholder: check for WCAG compliance, alt text, captions, etc.
-        accessibility_issues = [
-            {"type": "missing_alt_text", "severity": "medium", "count": 0},
-            {"type": "missing_captions", "severity": "high", "count": 0},
-            {"type": "color_contrast", "severity": "low", "count": 0},
-            {"type": "keyboard_navigation", "severity": "medium", "count": 0},
-        ]
+        modules = state.course_hierarchy_data.get("modules", [])
+        objectives = state.extracted_learning_objectives
+        missing_titles = sum(1 for module in modules if not module.get("title", "").strip())
+        missing_descriptions = sum(1 for module in modules if not module.get("description", "").strip())
+        accessibility_issues = []
+        if missing_titles:
+            accessibility_issues.append({"type": "missing_heading", "severity": "high", "count": missing_titles})
+        if missing_descriptions:
+            accessibility_issues.append({"type": "missing_description", "severity": "medium", "count": missing_descriptions})
+        if not objectives:
+            accessibility_issues.append({"type": "missing_learning_objectives", "severity": "medium", "count": 1})
 
         state.accessibility_audit = {
             "audit_date": datetime.utcnow().isoformat(),
             "total_issues": sum(i["count"] for i in accessibility_issues),
             "critical_issues": sum(i["count"] for i in accessibility_issues if i["severity"] == "critical"),
             "issues": accessibility_issues,
-            "remediation_complete": True,
+            "checks_performed": ["module_titles", "module_descriptions", "learning_objectives"],
+            "remediation_complete": not accessibility_issues,
         }
 
         state.completed_nodes.append("accessibility_check")
@@ -199,6 +217,34 @@ def accessibility_check(state: WorkforceAlignmentState) -> WorkforceAlignmentSta
 
     except Exception as e:
         logger.error(f"Accessibility check failed: {str(e)}")
+        state.error_message = str(e)
+        state.workflow_status = "failed"
+        return state
+
+
+def content_governance(state: WorkforceAlignmentState) -> WorkforceAlignmentState:
+    """Check generated workflow artifacts for required content before export."""
+    try:
+        state.current_node = "content_governance"
+        checks = {
+            "course_structure_present": bool(state.course_hierarchy_data),
+            "generated_updates_present": bool(state.generated_course_updates.get("update_summary")),
+            "accessibility_audit_present": bool(state.accessibility_audit),
+            "export_format_supported": state.export_format in {"imscc", "zip", "pdf", "docx"},
+        }
+        state.content_governance_report = {
+            "checks": checks,
+            "passed": all(checks.values()),
+            "recommendation": "approve" if all(checks.values()) else "review",
+            "review_required": not all(checks.values()),
+        }
+        state.completed_nodes.append("content_governance")
+        if not state.content_governance_report["passed"]:
+            state.error_message = "Content governance requires review before export"
+            state.workflow_status = "failed"
+        return state
+    except Exception as e:
+        logger.error(f"Content governance failed: {str(e)}")
         state.error_message = str(e)
         state.workflow_status = "failed"
         return state
@@ -226,6 +272,7 @@ def validate_export_package(state: WorkforceAlignmentState) -> WorkforceAlignmen
             "skill_mappings": bool(state.completed_nodes and "map_workforce_skills" in state.completed_nodes),
             "recommendations": bool(state.drafted_recommendations),
             "accessibility_audit": bool(state.accessibility_audit),
+            "content_governance": state.content_governance_report.get("passed", False),
         }
 
         all_valid = all(package_contents.values())
@@ -419,6 +466,7 @@ def create_workforce_alignment_graph():
     workflow.add_node("generate_course_updates", generate_course_updates)
     workflow.add_node("accessibility_check", accessibility_check)
     workflow.add_node("accessibility_review_interrupt", accessibility_review_interrupt)
+    workflow.add_node("content_governance", content_governance)
     workflow.add_node("validate_export_package", validate_export_package)
     workflow.add_node("final_approval_interrupt", final_approval_interrupt)
     workflow.add_node("persist_artifacts", persist_artifacts)
@@ -430,11 +478,23 @@ def create_workforce_alignment_graph():
     workflow.set_entry_point("validate_request_and_access")
 
     # Validation flow
-    workflow.add_edge("validate_request_and_access", "inspect_package_contents")
-    workflow.add_edge("inspect_package_contents", "extract_requirements")
+    workflow.add_conditional_edges(
+        "validate_request_and_access",
+        route_after_agent,
+        {"continue": "inspect_package_contents", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "inspect_package_contents",
+        route_after_agent,
+        {"continue": "extract_requirements", "failed": END},
+    )
 
     # Requirements extraction → human checkpoint
-    workflow.add_edge("extract_requirements", "requirements_confirmation_interrupt")
+    workflow.add_conditional_edges(
+        "extract_requirements",
+        route_after_agent,
+        {"continue": "requirements_confirmation_interrupt", "failed": END},
+    )
 
     # Checkpoint → decision flow
     workflow.add_conditional_edges(
@@ -448,7 +508,11 @@ def create_workforce_alignment_graph():
     )
 
     # Ingestion flow
-    workflow.add_edge("ingest_and_normalize_course_materials", "course_structure_review_interrupt")
+    workflow.add_conditional_edges(
+        "ingest_and_normalize_course_materials",
+        route_after_agent,
+        {"continue": "course_structure_review_interrupt", "failed": END},
+    )
 
     workflow.add_conditional_edges(
         "course_structure_review_interrupt",
@@ -461,9 +525,21 @@ def create_workforce_alignment_graph():
     )
 
     # Analysis flow
-    workflow.add_edge("retrieve_authorized_context", "map_workforce_skills")
-    workflow.add_edge("map_workforce_skills", "calculate_coverage_and_gaps")
-    workflow.add_edge("calculate_coverage_and_gaps", "mapping_review_interrupt")
+    workflow.add_conditional_edges(
+        "retrieve_authorized_context",
+        route_after_agent,
+        {"continue": "map_workforce_skills", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "map_workforce_skills",
+        route_after_agent,
+        {"continue": "calculate_coverage_and_gaps", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "calculate_coverage_and_gaps",
+        route_after_agent,
+        {"continue": "mapping_review_interrupt", "failed": END},
+    )
 
     workflow.add_conditional_edges(
         "mapping_review_interrupt",
@@ -476,20 +552,57 @@ def create_workforce_alignment_graph():
     )
 
     # Recommendations & approvals
-    workflow.add_edge("draft_recommendations", "recommendations_approval_interrupt")
-    workflow.add_edge("recommendations_approval_interrupt", "generate_course_updates")
+    workflow.add_conditional_edges(
+        "draft_recommendations",
+        route_after_agent,
+        {"continue": "recommendations_approval_interrupt", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "recommendations_approval_interrupt",
+        route_after_agent,
+        {"continue": "generate_course_updates", "failed": END},
+    )
 
     # Accessibility
-    workflow.add_edge("generate_course_updates", "accessibility_check")
-    workflow.add_edge("accessibility_check", "accessibility_review_interrupt")
-    workflow.add_edge("accessibility_review_interrupt", "validate_export_package")
+    workflow.add_conditional_edges(
+        "generate_course_updates",
+        route_after_agent,
+        {"continue": "accessibility_check", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "accessibility_check",
+        route_after_agent,
+        {"continue": "accessibility_review_interrupt", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "accessibility_review_interrupt",
+        route_after_agent,
+        {"continue": "content_governance", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "content_governance",
+        route_after_agent,
+        {"continue": "validate_export_package", "failed": END},
+    )
 
     # Export & approval
-    workflow.add_edge("validate_export_package", "final_approval_interrupt")
-    workflow.add_edge("final_approval_interrupt", "persist_artifacts")
+    workflow.add_conditional_edges(
+        "validate_export_package",
+        route_after_agent,
+        {"continue": "final_approval_interrupt", "failed": END},
+    )
+    workflow.add_conditional_edges(
+        "final_approval_interrupt",
+        route_after_agent,
+        {"continue": "persist_artifacts", "failed": END},
+    )
 
     # Finalization
-    workflow.add_edge("persist_artifacts", "emit_audit_events")
+    workflow.add_conditional_edges(
+        "persist_artifacts",
+        route_after_agent,
+        {"continue": "emit_audit_events", "failed": END},
+    )
     workflow.add_edge("emit_audit_events", END)
 
     # Compile the graph

@@ -92,6 +92,7 @@ class WorkforceAlignmentState(BaseModel):
     accessibility_review_complete: bool = Field(False, description="Accessibility review complete")
     accessibility_approved: bool = Field(False, description="Accessibility approved by reviewer")
     accessibility_audit: Dict[str, Any] = Field(default_factory=dict, description="Accessibility audit results from Phase 5")
+    content_governance_report: Dict[str, Any] = Field(default_factory=dict, description="Automated content governance checks")
 
     # ===== EXPORT & FINAL APPROVAL =====
     export_format: str = Field("imscc", description="Target export format: imscc, zip, pdf, docx")

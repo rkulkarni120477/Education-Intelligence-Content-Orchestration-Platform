@@ -8,6 +8,8 @@ from database.db import get_db
 from database.models import Workflow
 from auth.tenant_context import get_current_tenant_id
 from services.agent_workflow_executor import AgentWorkflowExecutor
+from services.multi_agent_orchestrator import MultiAgentOrchestrator
+from services.workflow_agent_registry import AGENT_REGISTRY
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,12 @@ class ExecuteWorkflowResponse(BaseModel):
 # ===== API ENDPOINTS =====
 
 
+@router.get("/catalog", response_model=Dict[str, Any])
+async def get_workflow_catalog():
+    """List workflow plans and the executable agents in each plan."""
+    return {"workflows": MultiAgentOrchestrator.list_workflows()}
+
+
 @router.post("/assign", response_model=WorkflowAssignmentResponse)
 async def assign_workflow_to_agent(
     request: AssignWorkflowRequest,
@@ -80,6 +88,9 @@ async def assign_workflow_to_agent(
 ):
     """Assign a workflow to an agent for execution."""
     try:
+        if request.agent_id not in AGENT_REGISTRY:
+            raise HTTPException(status_code=404, detail=f"Agent {request.agent_id} is not registered")
+
         workflow = (
             db.query(Workflow)
             .filter(
@@ -205,6 +216,9 @@ async def execute_workflow_as_agent(
 ):
     """Execute a workflow as a specific agent."""
     try:
+        if request.agent_id not in AGENT_REGISTRY:
+            raise HTTPException(status_code=404, detail=f"Agent {request.agent_id} is not registered")
+
         logger.info(
             f"🚀 Executing workflow {request.workflow_id} as agent {request.agent_id}"
         )
